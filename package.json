@@ -1,0 +1,27 @@
+{
+  "name": "beebsidtools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "BeebSid Tools: create, player, and BeebSID Disc Creator",
+  "type": "module",
+  "bin": {
+    "beebsid-create": "./create"
+  },
+  "scripts": {
+    "create": "node src.create/src/cli.js",
+    "test": "npm test --prefix src.create && npm test --prefix src.player",
+    "test:fast": "npm run test:fast --prefix src.create && npm run test:fast --prefix src.player",
+    "test:create": "npm test --prefix src.create",
+    "test:player": "npm test --prefix src.player",
+    "update:golden-ssd": "npm run update:golden-ssd --prefix src.create",
+    "update:golden-reloc": "npm run update:golden-reloc --prefix src.create",
+    "update:golden-audio": "npm run update:golden-audio --prefix src.create",
+    "update:golden-player": "npm run update:golden-player --prefix src.player",
+    "build:player": "npm run build --prefix src.player",
+    "dev:app": "npm run sync --prefix src.app && npm run dev --prefix src.app",
+    "build:app": "npm run sync --prefix src.app && npm run build --prefix src.app"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

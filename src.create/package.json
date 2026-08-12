@@ -1,0 +1,34 @@
+{
+  "name": "beebsidtools-src-create",
+  "version": "0.1.0",
+  "private": true,
+  "description": "In-memory BeebSID create pipeline (SID → .bbcsid)",
+  "type": "module",
+  "bin": {
+    "beebsid-create": "./src/cli.js"
+  },
+  "scripts": {
+    "create": "node src/cli.js",
+    "test": "node --test --test-timeout=180000 test/**/*.test.js",
+    "test:fast": "node --test --test-timeout=180000 test/golden-rip.test.js test/golden-patch.test.js test/golden-ssd.test.js",
+    "update:golden-ssd": "node test/bin/update-golden-ssd.js",
+    "update:golden-reloc": "node test/bin/update-golden-reloc.js",
+    "update:golden-audio": "node test/bin/update-golden-audio.js"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./preview": "./src/preview/index.js",
+    "./preview/node": "./src/preview/node/index.js",
+    "./preview/browser": "./src/preview/browser/index.js",
+    "./preview/contract": "./src/preview/contract.js",
+    "./cli": "./src/cli.js"
+  },
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "jsbeeb": "^1.13.1"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

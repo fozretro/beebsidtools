@@ -1,0 +1,40 @@
+---
+description: BeebSID Tools architecture lineage — archive vs active toolchain
+globs: README.md,.cursor/ARCHITECTURE.md,src.*/**/*
+alwaysApply: false
+---
+
+# Architecture & lineage
+
+Full narrative: [ARCHITECTURE.md](../ARCHITECTURE.md).
+
+## Active vs historic
+
+This repo is the active toolchain. The parent project’s `archive/` (C sidreloc, ca65 SIDPLAY, old discs) is **not in this tree**.
+
+| Active (this repo) | Historic (parent `archive/`, not present here) |
+|--------------------|------------------------------------------------|
+| JS sidreloc + ripsid + hash patches | C sidreloc/ripsid, `patch_c64_hw.py`, shell convert |
+| BeebAsm `src.player` (source of truth) | ca65 SIDPLAY under `archive/tools/SIDPlayer/` |
+| In-memory DFS pack + jsbeeb preview | Dom’s `dfs-0.4`, b-em / py65 host checks |
+| In-tree create/player goldens | `archive/output/` older reference discs |
+
+## Pipeline (conceptual)
+
+```text
+.sid → [pre-patch] → relocate → [post-patch] → rip → .bbcsid
+                                                    ↓
+                              pack-ssd (+ sidpl.o) → .ssd → jsbeeb preview
+```
+
+## Origins worth remembering
+
+- **SIDPlayer** (Dominic Beesley / Stardot): menu + ripsid + sidreloc workflow this tree ports.
+- **sidreloc** (Linus Akesson): JS port in `src.create/src/lib/sidreloc/`.
+- **SIDPLAY**: BeebAsm port of ca65 player in `src.player` (not “JS port”).
+- **jsbeeb** (Matt Godbolt): headless/browser preview; FastSID via vendored jsSID.
+- CLI takes explicit `.sid` paths. Sample library: `sids/` (parent repo called this `input/`). Test fixtures: `src.create/test/golden/`.
+
+Prefer extending this tree over resurrecting parent-repo archive scripts unless the user asks for that parity.
+
+Decision-level “why” from the parent-project birth lives in `.tmp/conversations/` (see historic-conversations rule).

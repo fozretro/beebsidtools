@@ -1,0 +1,6 @@
+node_modules/
+dist/
+public/player/*
+!public/player/.gitkeep
+.DS_Store
+

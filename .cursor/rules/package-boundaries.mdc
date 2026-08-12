@@ -1,0 +1,32 @@
+---
+description: Separation of concerns between src.create, src.player, and src.app
+globs: src.*/**/*
+alwaysApply: false
+---
+
+# Package boundaries (src.*)
+
+Three packages; keep responsibilities strict.
+
+| Package | Owns | Does not own |
+|---------|------|--------------|
+| `src.create` | SID→`.bbcsid`→SSD pipeline, patches, preview hosts, create goldens | Player build, React UI |
+| `src.player` | BeebAsm SIDPLAY/SIDPELK, player goldens, `out/*.o` | Relocate/rip/pack, app chrome |
+| `src.app` | BeebSID Disc Creator UI over create API | Pipeline logic, assembling player |
+
+## Hard rules
+
+- **Create stages are buffer-only.** No `fs` in `src.create/src/stages/`, `lib/` (except Node preview materialize), or `patches/`. Paths belong in `cli.js` or the app.
+- **CLI is the filesystem edge.** `./create` / `cli.js` reads `.sid` + `sidpl.o`, writes outputs. Do not teach stages about cwd.
+- **Player is an injected asset.** Create never builds the player. Pass `assets.sidplay` (Buffer). CLI loads `src.player/out`; app syncs to `public/player/`.
+- **App is a thin UI.** Call `createSsd` / `preview/browser` in-process. Do not shell out to `./create` or reimplement relocate/rip/patch in React.
+- **Preview host is explicit.** Always pass `preview: { stage: previewSsdStage(...) }` from the correct import (see preview-hosts rule).
+
+```js
+// ✅ App
+import { createSsd } from "beebsidtools-src-create";
+import { previewSsdStage } from "beebsidtools-src-create/preview/browser";
+
+// ❌ App — pulls Node/jsbeeb MachineSession into Vite
+import { previewSsdStage } from "beebsidtools-src-create/preview/node";
+```

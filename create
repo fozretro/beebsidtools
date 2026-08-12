@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Thin launcher for the create CLI (src.create/src/cli.js)
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+exec node "$ROOT/src.create/src/cli.js" "$@"

@@ -1,0 +1,33 @@
+---
+description: Node vs browser jsbeeb preview hosts and BeebSID audio capture
+globs: src.create/src/preview/**/*,src.app/**/*
+alwaysApply: false
+---
+
+# Preview hosts
+
+Shared contract: `preview/contract.js` + `beebMenu.js` + FastSID (`$FC20` → vendored jsSID).
+
+| | Node `preview/node` | Browser `preview/browser` |
+|--|---------------------|---------------------------|
+| Who | CLI, create goldens/tests | Disc Creator + Test Disc modal |
+| Disc | Path (buffer → temp SSD) | In-memory `Uint8Array` |
+| Session | `jsbeeb/machine-session` | Local `MachineSession` (no fs/sharp) |
+| ROMs | jsbeeb defaults | `/jsbeeb/` via `sync:jsbeeb` |
+| Screenshots | session (+ sharp path) | canvas crop → PNG |
+
+## Rules
+
+- `createSsd({ preview: true })` is invalid alone — supply `preview.stage` from the right host.
+- Default model for `*FREE` / DFS catalogue shots: **`B1770`** (Acorn 1770 DFS). Not `B-DFS1.2`.
+- Capture order for disc info shot: boot BASIC → `*CAT` → `*FREE` → PNG → then Shift+Break to SIDPLAY menu.
+- Keep Node and browser capture APIs aligned (`menuPng`, `freePng`, `tunes[].wav`).
+- Live/Test Disc uses browser session + realtime paint; turbo capture uses accelerated `runFor`.
+
+```js
+// CLI / tests
+import { previewSsdStage } from "beebsidtools-src-create/preview/node";
+
+// App
+import { previewSsdStage } from "beebsidtools-src-create/preview/browser";
+```

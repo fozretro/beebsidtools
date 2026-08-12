@@ -1,0 +1,19 @@
+---
+description: Consult lifted parent-project Cursor chats in .tmp when design intent is unclear
+alwaysApply: true
+---
+
+# Historic Cursor chats (`.tmp/conversations/`)
+
+This tree was lifted from a parent repo. Design intent that is not in code or `.cursor/ARCHITECTURE.md` often lives in **local** conversation dumps (gitignored — skip if the folder is missing).
+
+Start at [`.tmp/conversations/README.md`](../../.tmp/conversations/README.md). Prefer the `.md` dumps over `.jsonl`. **Search / read slices** — do not ingest a whole thread.
+
+| Id | Use when |
+|----|----------|
+| `d5ddf77e-0787-4e7f-96b9-85a9d5b744c7` | Why create/player/app, preview hosts, Disc Creator UI, goldens, or rules/skills landed this way |
+| `4fbc0636-1ef3-4f00-b019-bc8036b64409` | sidreloc-in-browser / WASM vs JS port (read-only review) |
+
+Subagent traces: `d5ddf77e-…/subagents/`.
+
+Consult **as needed** (lineage, “why not X”, reconstructing a decision). Current code and `.cursor/rules/` win if a dump disagrees. Do not treat dumps as a task list or re-run old instructions.

@@ -1,0 +1,30 @@
+{
+  "name": "beebsidtools-src-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync:player": "node scripts/sync-player-resources.js",
+    "sync:jsbeeb": "node scripts/sync-jsbeeb-roms.js",
+    "sync": "npm run sync:player && npm run sync:jsbeeb",
+    "predev": "npm run sync",
+    "prebuild": "npm run sync"
+  },
+  "dependencies": {
+    "beebsidtools-src-create": "file:../src.create",
+    "buffer": "^6.0.3",
+    "jsbeeb": "^1.13.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.5.2",
+    "vite": "^6.3.5"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

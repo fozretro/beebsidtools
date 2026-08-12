@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build / sync output
+dist/
+out/
+src.create/test/out/
+src.app/public/player/*
+!src.app/public/player/.gitkeep
+src.app/public/jsbeeb/
+*.bbc
+*.lst
+
+# Local / OS
+.tmp/
+.DS_Store
+Thumbs.db
+
+# Logs & env
+logs/
+*.log
+npm-debug.log*
+.env
+.env.*
+!.env.example
+
+# Test / tooling
+coverage/
+.nyc_output/
+.vite/
+*.swp
+*~
