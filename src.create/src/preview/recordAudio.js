@@ -3,7 +3,7 @@
  */
 
 import { Buffer } from "buffer";
-import { keyCodes } from "jsbeeb/src/utils.js";
+import { keyCodes } from "./keyCodes.js";
 import {
   BBC_CPU_HZ,
   SAMPLE_RATE,

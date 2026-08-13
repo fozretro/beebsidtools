@@ -3,7 +3,7 @@
  */
 
 import { Buffer } from "buffer";
-import { keyCodes } from "jsbeeb/src/utils.js";
+import { keyCodes } from "./keyCodes.js";
 
 /** Spaced teletext title at $7C2D (and $7C55) from menu.bin */
 export const MENU_TITLE_ADDR = 0x7c2d;

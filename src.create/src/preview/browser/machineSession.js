@@ -209,6 +209,29 @@ export class MachineSession {
     return Buffer.from(png);
   }
 
+  /**
+   * Map window keydown/keyup to BBC keys (browser keyCode, same as keyDown).
+   * @returns {() => void} detach
+   */
+  attachDomKeyboard() {
+    const onKeyDown = (e) => {
+      if (e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      this.keyDown(e.keyCode, e.shiftKey);
+    };
+    const onKeyUp = (e) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      e.preventDefault();
+      this.keyUp(e.keyCode);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }
+
   destroy() {
     this._fb8.fill(0);
   }

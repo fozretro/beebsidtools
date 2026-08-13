@@ -96,9 +96,9 @@ Load address must stay on page `$1A`. The `.vars` file is the ripsid log (`SID_L
 
 ## How jsbeeb is used
 
-[jsbeeb](https://github.com/mattgodbolt/jsbeeb) (Matt Godbolt) is a BBC Micro **emulator library** (`Cpu6502`, video, FDC, keyboard, sound chip, …). The same repo also ships a website ([bbc.xania.org](https://bbc.xania.org), wired in `src/main.js`) and an Electron shell. npm `exports` expose those internals plus a Node `MachineSession` (headless/MCP) and `TestMachine` — not a drop-in “BBC on a canvas” widget.
+[jsbeeb](https://github.com/mattgodbolt/jsbeeb) (Matt Godbolt) is a BBC Micro **emulator library** (`Cpu6502`, video, FDC, keyboard, sound chip, …). The same repo also ships a website ([bbc.xania.org](https://bbc.xania.org), wired in `src/main.js`) and an Electron shell — not a drop-in “BBC on a canvas” widget. We import the library, not that website. Node ≥**24.15** matches jsbeeb 1.17.x (which already ships a patched `sharp`). We stub jsbeeb’s optional Electron packages so first-run `npm install` does not pull Chromium.
 
-We import the library pieces, not the website. Its emulated sound is the BBC SN76489 (plus Music 5000) — not BeebSID. Node ≥**24.15** matches jsbeeb 1.17.x (which already ships a patched `sharp`). We stub jsbeeb’s optional Electron packages so first-run `npm install` does not pull Chromium.
+The subsections below are the whole story. **Hosts** is why there are two preview machines: Node `MachineSession` for the CLI, and a browser-safe copy over `TestMachine` for the Disc Creator — same session surface, never cross-imported. **Adding BeebSID Emulation** is the SID path jsbeeb does not have: we watch `$FC20` writes, run FastSID ourselves, and play or record that PCM *beside* jsbeeb (not through its SN76489). **Two run speeds** is turbo `runFor` for screenshots/WAVs versus realtime Test Disc. **Imports** is the jsbeeb entry points we actually call, and only from those hosts.
 
 ### Hosts
 
@@ -111,32 +111,42 @@ Create and the Disc Creator both need a running BBC to screenshot the SIDPLAY me
 | Disc | Path (buffer → temp SSD) | In-memory `Uint8Array` |
 | ROMs | jsbeeb package defaults | `/jsbeeb/` via `sync:jsbeeb` |
 
-Shared: `beebMenu.js`, FastSID poke of `$FC20`–`$FC3F` (vendored jsSID in `src.create/vendor/jsSID`). Default model **`B1770`** (Acorn 1770 DFS) so `*FREE` works.
+Shared: `beebMenu.js`. Default model **`B1770`** (Acorn 1770 DFS) so `*FREE` works.
+
+### Adding BeebSID Emulation
+
+jsbeeb emulates the BBC SN76489 (and Music 5000). It does not emulate BeebSID. Hardware SID registers live at `$FC20`–`$FC3F` (relocated `$D400`); SIDPLAY and ripsid trampolines store there, and those writes are invisible to jsbeeb’s sound chip. We add the SID ourselves.
+
+**In** (from jsbeeb — CPU only):
+
+1. Hook `processor.debugWrite.add` and keep running (`return false`). `MachineSession.addBreakpoint("write")` cannot do this — a hit calls `cpu.stop()`.
+2. On `$FC20`–`$FC3F`, `poke(addr − $FC20, val)` into vendored FastSID (jsSID / VICE MOS6581 PAL) in `src.create/vendor/jsSID`.
+3. Convert CPU cycle deltas (`cycleSeconds * BBC_CPU_HZ + currentCycles`, 2 MHz) into FastSID PCM samples.
+
+**Out** (not back into jsbeeb): FastSID PCM never enters jsbeeb’s `AudioHandler` or `InstrumentedSoundChip` (that chip is still constructed so `TestMachine` will boot; it is SN76489, unused for BeebSID). Turbo capture (`recordAudio.js`) concatenates the PCM and wraps a WAV. Live Test Disc queues the same samples into our own Web Audio `ScriptProcessor` connected to `audioCtx.destination` (`livePreview.js`). `createFastSid` lives in `src.create/src/preview/fastsid.js`.
 
 ### Two run speeds
 
 - **Turbo capture** — accelerated `runFor` for menu/`*CAT`/`*FREE` PNGs and per-tune WAVs (`recordAudio.js`).
 - **Live Test Disc** — same browser session, then realtime: `requestAnimationFrame` + canvas paint + keyboard (`src.app/src/livePreview.js`).
 
-Live looks like extra plumbing because we reused the test/headless machine instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). `TestMachine` installs `FakeDdNoise`; jsbeeb’s sample loader uses XHR in a way that fails under Vite, so disc525 WAVs are `fetch` + `decodeAudioData` and patched onto the stub after turbo boot. FastSID is a live variant of the same `$FC20` hook used for WAV capture.
+Live looks like extra plumbing because we reused the test/headless machine instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). Keys go through our session `keyDown`/`keyUp` (browser `keyCode`), not jsbeeb’s `Keyboard`. Drive samples are left as `TestMachine`’s `FakeDdNoise`. FastSID is a live variant of the same `$FC20` hook used for WAV capture. The app must not import jsbeeb — only `preview/browser`.
 
 An iframe of bbc.xania.org would not take an in-memory SSD we just built, would not map BeebSID `$FC20`, and would not honour the `B1770` preview contract.
 
 ### Imports
 
-We import these jsbeeb entry points (never the website `src/main.js`). The methods column is the surface we actually call.
+We import these jsbeeb entry points from the preview hosts only (never the website `src/main.js`, never `src.app`). `SHIFT`/`DOWN`/`ENTER` live in `preview/keyCodes.js`. The methods column is the surface we actually call.
 
-| Import | Used by | Depend on |
-|--------|---------|-----------|
-| `jsbeeb/machine-session` (`MachineSession`) | Node `preview/node` | `new MachineSession(model, { discImage })`, `initialise`, `boot`, `type`, `keyDown`/`keyUp`, `reset`, `runFor`, `readMemory`, `screenshotActive`, `destroy`. FastSID also uses `session._machine.processor` (`debugWrite.add`, `cycleSeconds`, `currentCycles`). |
-| `jsbeeb/src/utils.js` | both hosts | `keyCodes` (`SHIFT`, `DOWN`, `ENTER`); `setBaseUrl` (browser ROM base) |
-| `jsbeeb/tests/test-machine.js` (`TestMachine`) | browser `preview/browser` | `new TestMachine(model, { video, soundChip })`, `initialise`, `runUntilInput`, `type`, `runFor`, `readbyte`. `.processor`: `sysvia.keyDown`/`keyUp`, `reset`, `execute`, `fdc.loadDisc`, `debugWrite`, `cycleSeconds`/`currentCycles`, `ddNoise` |
-| `jsbeeb/src/models.js` (`findModel`) | browser session | `isMaster`, `isAtom` |
-| `jsbeeb/src/video.js` (`Video`) | browser session | constructor (framebuffer + paint callback); `leftBorder`/`topBorder`/`rightBorder`/`bottomBorder` |
-| `jsbeeb/src/soundchip.js` | browser session | `InstrumentedSoundChip` / `FakeSoundChip` constructors (passed into `TestMachine`; SN76489, not BeebSID) |
-| `jsbeeb/src/fdc.js` (`discFor`) | browser session | `discFor(fdc, name, bytes)` |
-| `jsbeeb/src/keyboard.js` (`Keyboard`) | live Test Disc | constructor, `setRunning`, `keyDown`/`keyPress`/`keyUp` |
-| `jsbeeb/src/ddnoise.js` (`DdNoise`) | live Test Disc | `spinUp`/`spinDown`/`seek`/`mute`/`unmute`; `.sounds` filled after our `fetch` load |
+| Import | Depend on | Used by |
+|--------|-----------|---------|
+| `jsbeeb/machine-session` (`MachineSession`) | <ul style="white-space:nowrap"><li>`new MachineSession(model, { discImage })`</li><li>`initialise`</li><li>`boot`</li><li>`type`</li><li>`keyDown` / `keyUp`</li><li>`reset`</li><li>`runFor`</li><li>`readMemory`</li><li>`screenshotActive`</li><li>`destroy`</li><li>`_machine.processor.debugWrite.add` (FastSID)</li><li>`_machine.processor.cycleSeconds` / `currentCycles` (FastSID)</li></ul> | Node `preview/node` |
+| `jsbeeb/src/utils.js` (`setBaseUrl`) | <ul style="white-space:nowrap"><li>`setBaseUrl` (ROM fetch base `/jsbeeb/`)</li></ul> | browser session |
+| `jsbeeb/tests/test-machine.js` (`TestMachine`) | <ul style="white-space:nowrap"><li>`new TestMachine(model, { video, soundChip })`</li><li>`initialise`</li><li>`runUntilInput`</li><li>`type`</li><li>`runFor`</li><li>`readbyte`</li><li>`.processor.sysvia.keyDown` / `keyUp`</li><li>`.processor.reset`</li><li>`.processor.execute`</li><li>`.processor.fdc.loadDisc`</li><li>`.processor.debugWrite`</li><li>`.processor.cycleSeconds` / `currentCycles`</li></ul> | browser `preview/browser` |
+| `jsbeeb/src/models.js` (`findModel`) | <ul style="white-space:nowrap"><li>`findModel`</li><li>`.isMaster`</li><li>`.isAtom`</li></ul> | browser session |
+| `jsbeeb/src/video.js` (`Video`) | <ul style="white-space:nowrap"><li>`new Video(…)` (framebuffer + paint callback)</li><li>`leftBorder`</li><li>`topBorder`</li><li>`rightBorder`</li><li>`bottomBorder`</li></ul> | browser session |
+| `jsbeeb/src/soundchip.js` | <ul style="white-space:nowrap"><li>`new InstrumentedSoundChip()`</li><li>`new FakeSoundChip()` (passed into `TestMachine`; SN76489, not BeebSID)</li></ul> | browser session |
+| `jsbeeb/src/fdc.js` (`discFor`) | <ul style="white-space:nowrap"><li>`discFor(fdc, name, bytes)`</li></ul> | browser session |
 
 ## Do not regress
 
@@ -145,3 +155,4 @@ We import these jsbeeb entry points (never the website `src/main.js`). The metho
 - Duplicating relocate/rip in React
 - Pointing create tests anywhere except `src.create/test/golden/`
 - Treating jsbeeb’s hosted app as an embed (iframe bbc.xania.org) or expecting its SN76489 path to play BeebSID
+- Importing jsbeeb from `src.app` (app uses `preview/browser` only)

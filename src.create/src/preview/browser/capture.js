@@ -2,7 +2,7 @@
  * Browser turbo SSD preview (same contract as preview/node/capture.js).
  */
 
-import { keyCodes } from "jsbeeb/src/utils.js";
+import { keyCodes } from "../keyCodes.js";
 import { bootToMenu, runCatAndFree, CYCLES_PER_POLL } from "../beebMenu.js";
 import { recordFromSession } from "../recordAudio.js";
 import { MachineSession, DEFAULT_ROM_BASE } from "./machineSession.js";

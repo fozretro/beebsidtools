@@ -23,6 +23,7 @@ Shared contract: `preview/contract.js` + `beebMenu.js` + FastSID (`$FC20` → ve
 - Capture order for disc info shot: boot BASIC → `*CAT` → `*FREE` → PNG → then Shift+Break to SIDPLAY menu.
 - Keep Node and browser capture APIs aligned (`menuPng`, `freePng`, `tunes[].wav`).
 - Live/Test Disc uses browser session + realtime paint; turbo capture uses accelerated `runFor`.
+- App must not import `jsbeeb`. Live keys: `session.attachDomKeyboard()` / `keyDown`/`keyUp` (local `preview/keyCodes.js` for SHIFT/DOWN/ENTER).
 
 ```js
 // CLI / tests

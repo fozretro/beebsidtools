@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { MachineSession } from "jsbeeb/machine-session";
-import { keyCodes } from "jsbeeb/src/utils.js";
+import { keyCodes } from "../keyCodes.js";
 import { bootToMenu, runCatAndFree, CYCLES_PER_POLL } from "../beebMenu.js";
 import { recordFromSession } from "../recordAudio.js";
 import { UI_SECONDS_PER_TUNE, GOLDEN_SECONDS } from "../contract.js";

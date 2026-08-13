@@ -82,7 +82,7 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 1. Missing `sidpl.o` → `./create` / `./app` copy goldens into `src.player/out/`.
 2. Vite/`MachineSession` fs errors → wrong preview host import.
 3. `*FREE` fails → model must be `B1770`, not `B-DFS1.2`.
-4. App ROMs/sounds missing → `npm run sync --prefix src.app`.
+4. App ROMs missing → `npm run sync --prefix src.app`.
 5. Patch unexpected → check `./create patches` / `--no-patch` / SID hash.
 6. First-run build failed → `logs/install-src.create.log` (`./create`) or `logs/build-app.log` (`./app`).
 
