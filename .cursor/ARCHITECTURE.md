@@ -45,6 +45,34 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 - Disc info: BASIC → `*CAT` → `*FREE` (needs 1770 DFS)
 - Audio: BeebSID `$FC20` → FastSID (vendored jsSID)
 
+## jsbeeb
+
+[jsbeeb](https://github.com/mattgodbolt/jsbeeb) (Matt Godbolt) is a BBC Micro **emulator library** (`Cpu6502`, video, FDC, keyboard, sound chip, …). The same repo also ships a website ([bbc.xania.org](https://bbc.xania.org), wired in `src/main.js`) and an Electron shell. npm `exports` expose those internals plus a Node `MachineSession` (headless/MCP) and `TestMachine` — not a drop-in “BBC on a canvas” widget.
+
+We import the library pieces, not the website. Its emulated sound is the BBC SN76489 (plus Music 5000) — not BeebSID.
+
+### Hosts
+
+Create and the Disc Creator both need a running BBC to screenshot the SIDPLAY menu, run `*CAT`/`*FREE`, and record BeebSID audio. jsbeeb’s own `MachineSession` does that in Node (disc as a filesystem path, screenshots via sharp). The Vite app cannot import it — `fs` / sharp / the Node session leak into the browser bundle — so `preview/browser` is a second host with the same session surface: `TestMachine`, disc bytes in memory, canvas → PNG. Callers pick one (`preview/node` vs `preview/browser`) and must not cross-import.
+
+| | Node `preview/node` | Browser `preview/browser` |
+|--|---------------------|---------------------------|
+| Who | CLI, create goldens/tests | Disc Creator capture + Test Disc |
+| Session | `jsbeeb/machine-session` | Local `MachineSession` over `TestMachine` (no `fs` / sharp) |
+| Disc | Path (buffer → temp SSD) | In-memory `Uint8Array` |
+| ROMs | jsbeeb package defaults | `/jsbeeb/` via `sync:jsbeeb` |
+
+Shared: `beebMenu.js`, FastSID poke of `$FC20`–`$FC3F` (vendored jsSID in `src.create/vendor/jsSID`). Default model **`B1770`** (Acorn 1770 DFS) so `*FREE` works.
+
+### Two run speeds
+
+- **Turbo capture** — accelerated `runFor` for menu/`*CAT`/`*FREE` PNGs and per-tune WAVs (`recordAudio.js`).
+- **Live Test Disc** — same browser session, then realtime: `requestAnimationFrame` + canvas paint + keyboard (`src.app/src/livePreview.js`).
+
+Live looks like extra plumbing because we reused the test/headless machine instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). `TestMachine` installs `FakeDdNoise`; jsbeeb’s sample loader uses XHR in a way that fails under Vite, so disc525 WAVs are `fetch` + `decodeAudioData` and patched onto the stub after turbo boot. FastSID is a live variant of the same `$FC20` hook used for WAV capture.
+
+An iframe of bbc.xania.org would not take an in-memory SSD we just built, would not map BeebSID `$FC20`, and would not honour the `B1770` preview contract.
+
 ## Related people / upstream (credits context)
 
 | Who | Role |
@@ -64,3 +92,4 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 - Teaching create stages about filesystem paths
 - Duplicating relocate/rip in React
 - Pointing create tests at a parent-repo `archive/output` instead of `src.create/test/golden/`
+- Treating jsbeeb’s hosted app as an embed (iframe bbc.xania.org) or expecting its SN76489 path to play BeebSID
