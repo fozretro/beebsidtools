@@ -1,8 +1,9 @@
 # Contributing
 
 Thanks for helping with BeebSID Tools. End-user run instructions live in
-[`README.md`](README.md) (`./create` and `./app`). This file is for changing the
-code.
+[`README.md`](README.md) (`./create` and `./app`). Architecture and lineage:
+[`.cursor/ARCHITECTURE.md`](.cursor/ARCHITECTURE.md). This file is for changing
+the code.
 
 ## Pull requests
 
@@ -43,7 +44,7 @@ rip → .bbcsid ─────────────────┐
 | [`src.player/`](src.player/) | SIDPLAY / SIDPELK; goldens in [`src.player/test/`](src.player/test/) |
 | [`src.app/`](src.app/) | Thin UI over the create API |
 
-Lineage notes: [`.cursor/ARCHITECTURE.md`](.cursor/ARCHITECTURE.md).
+Architecture and lineage: [`.cursor/ARCHITECTURE.md`](.cursor/ARCHITECTURE.md).
 
 ## Package boundaries
 
