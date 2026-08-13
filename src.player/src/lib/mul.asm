@@ -1,4 +1,5 @@
-; taken from http://codebase64.org/doku.php?id=base:8bit_multiplication_16bit_product
+; From Dominic Beesley's SIDPLAY (sidplayer/mul.s, sidplay-build / Stardot).
+; Multiply routine from http://codebase64.org/doku.php?id=base:8bit_multiplication_16bit_product
 
 
 

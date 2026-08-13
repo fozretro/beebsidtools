@@ -2,7 +2,7 @@
   "name": "beebsidtools",
   "version": "0.1.0",
   "private": true,
-  "description": "BeebSid Tools: create, player, and BeebSID Disc Creator",
+  "description": "BeebSID Tools: create, player, and BeebSID Disc Creator",
   "type": "module",
   "bin": {
     "beebsid-create": "./create"

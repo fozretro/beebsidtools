@@ -58,8 +58,8 @@ export function convertTunesStage(opts = {}) {
           ctx.log.push(`    ${line}`);
         }
 
-        // Menu titles match build_moresids_ssd.sh (stem with _ → space),
-        // not the PSID field, so packed SSDs stay byte-stable.
+        // Default menu title: stem with _ → space (not the PSID title),
+        // so packed SSDs stay byte-stable.
         let title = input.title;
         if (!title) title = titleFromStem(baseName);
         if (!title) {

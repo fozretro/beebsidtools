@@ -1,6 +1,5 @@
 /**
  * JS relocateSid must match committed reloc goldens (.rel.sid + .brk + exit).
- * No native sidreloc / archive dependency.
  *
  * Refresh: npm run update:golden-reloc
  */

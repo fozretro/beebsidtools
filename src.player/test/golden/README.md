@@ -1,7 +1,6 @@
 # Player golden binaries
 
-Committed `sidpl.o` / `sidpelk.o` from a known-good BeebAsm build
-(byte-identical to the archive ca65 SIDPlayer images at the time of capture).
+Committed `sidpl.o` / `sidpelk.o` from a known-good BeebAsm build.
 
 ```bash
 npm run build

@@ -1,4 +1,7 @@
-/** Parse sidrelocBRK / ----DOM:BRK: poke lists. */
+/**
+ * Parse sidrelocBRK / ----DOM:BRK: poke lists.
+ * Format from Dominic Beesley's sidreloc-1.0-dom (sidplay-build / Stardot).
+ */
 
 const BRK_RE = /^----DOM:BRK:([0-9A-Fa-f]+)/;
 

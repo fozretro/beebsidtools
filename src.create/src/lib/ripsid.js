@@ -1,6 +1,7 @@
 /**
- * Pure JS port of tools/SIDPlayer/ripsid/ripsid.c
  * SID (+ .brk poke list) → BeebSID .bbcsid with dual-write / GATE_PULSE trampolines.
+ *
+ * JavaScript port of Dominic Beesley's ripsid.c (sidplay-build / Stardot).
  */
 
 import { parsePsid, readBe16, cStringField } from "./psid.js";

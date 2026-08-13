@@ -1,7 +1,7 @@
-/* JavaScript port of sidreloc 1.0 (DOM/BRK variant).
+/* JavaScript port of sidreloc 1.0 reloc.h (DOM/BRK variant).
  *
  * Original C sources: Copyright (c) 2012 Linus Akesson, MIT licence.
- * See tools/SIDPlayer/sidreloc-1.0-dom/COPYING.
+ * DOM/BRK variant: Dominic Beesley (sidreloc-1.0-dom, sidplay-build / Stardot).
  *
  * This module corresponds to reloc.h: the shared tagged-byte representation,
  * the global analysis state and the source-list ("arena") allocator helpers.

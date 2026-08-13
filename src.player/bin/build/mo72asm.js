@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Convert a Mode 7 screen dump (.bin) to a BeebAsm EQUB RLE block.
- * Port of tools/SIDPlayer/sidplayer/mo72asm.pl
+ * JavaScript port of Dominic Beesley's mo72asm.pl (sidplay-build / Stardot).
  *
  *   node mo72asm.js <in.bin> <out.asm> <label>
  */

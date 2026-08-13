@@ -1,5 +1,7 @@
 /**
- * SIDPLAY M.MENU binary + DFS tune naming (match build_moresids_ssd.sh).
+ * SIDPLAY M.MENU binary, DFS tune names (S.nnXXXXX), and !BOOT.
+ *
+ * Port of Dominic Beesley's mkssd.sh menu / !BOOT layout (sidplay-build / Stardot).
  */
 
 /**

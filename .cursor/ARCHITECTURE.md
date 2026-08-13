@@ -6,6 +6,7 @@ Standalone C64 SID → BeebSID toolchain. Tests and goldens live **in this repo*
 
 ```text
 create                 → src.create/src/cli.js
+app                    → Disc Creator in a browser (bootstraps on first run)
 sids/                  sample SIDs for manual CLI
 src.create/            convert + SSD pack + preview hosts
 src.player/            BeebAsm SIDPLAY / SIDPELK
@@ -48,12 +49,14 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 
 | Who | Role |
 |-----|------|
-| Dominic Beesley | SIDPlayer, ripsid, dfs |
+| [Dominic Beesley](https://stardot.org.uk/forums/viewtopic.php?p=145147#p145147) | SIDPlayer, ripsid, dfs |
 | Linus Akesson | sidreloc |
 | Andrew Fawcett | sidreloc JS port, BeebAsm player, Disc Creator |
 | Matt Godbolt | jsbeeb |
 | jhohertz | jsSID FastSID |
 | Ben Harris | Bedstead (MODE 7 font) |
+| Ian Piumarta | 6502 CPU core (sidreloc) |
+| Stardot / BeebAsm | BBC assembler toolchain |
 
 ## Do not regress
 

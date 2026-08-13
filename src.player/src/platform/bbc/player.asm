@@ -1,6 +1,7 @@
-\ SIDPLAY (BBC) — BeebAsm port of tools/SIDPlayer/sidplayer
-\ Link order matches ca65 ld65: player + play_screen + menu_screen + mul
-\ Load/exec $6000; image padded to $1C00 (sidpl.cfg fill=yes)
+\ SIDPLAY (BBC) — BeebAsm port of Dominic Beesley's sidpl.s
+\ (sidplay-build / Stardot). Mode 7 screens from sidframe_mo7 / sidmenu_mo7.
+\ Link order: player + play_screen + menu_screen + mul
+\ Load/exec $6000; image padded to $1C00
 
 ORG &6000
 .start_img

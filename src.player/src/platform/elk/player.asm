@@ -1,6 +1,7 @@
-\ SIDPELK (Electron) — BeebAsm port of tools/SIDPlayer/sidplayer
-\ Link order matches ca65 ld65: player + mul
-\ Load/exec $4800; image padded to $1000 (sidpelk.cfg fill=yes)
+\ SIDPELK (Electron) — BeebAsm port of Dominic Beesley's SIDPLAY (sidpl.s,
+\ sidplay-build / Stardot), adapted for the Electron.
+\ Link order: player + mul
+\ Load/exec $4800; image padded to $1000
 
 ORG &4800
 .start_img

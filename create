@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Thin launcher for the create CLI (src.create/src/cli.js)
+# Convert SIDs / pack a BeebSID disc. First run installs Node deps if needed.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=scripts/ensure.sh
+source "$ROOT/scripts/ensure.sh"
+ensure_node
+ensure_pkg src.create
+ensure_player
 exec node "$ROOT/src.create/src/cli.js" "$@"

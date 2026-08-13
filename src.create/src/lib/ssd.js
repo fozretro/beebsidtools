@@ -1,5 +1,8 @@
 /**
  * Pack BeebSID tunes + player assets into a bootable DFS SSD (in-memory).
+ *
+ * Disc layout (SIDPLAY, M.MENU, !BOOT, load/exec) from Dominic Beesley's
+ * mkssd.sh (sidplay-build / Stardot).
  */
 
 import { addFile, createDisc, setOpt4, setTitle, toBuffer } from "./dfs.js";

@@ -9,7 +9,7 @@ description: >-
 
 # Run & test BeebSID Tools
 
-Work from this repo root. Node ≥22.12. Player build needs BeebAsm on `PATH` or `BEEBASM=…`.
+Work from this repo root. End users: `./create` and `./app` (they install deps on first run). Node ≥22.12. Rebuilding the player from source needs BeebAsm on `PATH` or `BEEBASM=…`.
 
 ## Quick decision
 
@@ -18,20 +18,14 @@ Work from this repo root. Node ≥22.12. Player build needs BeebAsm on `PATH` or
 | Unit/integration tests | `npm test` or `npm run test:fast` |
 | Convert one SID | `./create convert path/to/tune.sid -o /tmp/out` |
 | Pack SSD + menu PNG | `./create ssd path/to/*.sid -o /tmp/x.ssd --title=NAME` |
-| React UI | `npm run build:player && npm run dev:app` → http://localhost:5173 |
+| Disc Creator UI | `./app` |
 | Refresh fixtures | `npm run update:golden-*` (see below) |
 
 Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `sids/` (e.g. `sids/Head_Over_Heels.sid`). Test fixtures stay under `src.create/test/golden/`.
 
 ## Setup
 
-```bash
-npm install --prefix src.create
-npm install --prefix src.app          # UI only
-npm run build:player                  # → src.player/out/sidpl.o
-```
-
-Rebuild the player after player source changes, before SSD CLI or app sync.
+`./create` and `./app` install Node packages and copy the bundled player on first run. Rebuild the player from BeebAsm only after player source changes (`npm run build:player`).
 
 ## CLI create
 
@@ -52,10 +46,9 @@ Rebuild the player after player source changes, before SSD CLI or app sync.
 ## React Disc Creator
 
 ```bash
-npm run build:player
-npm run dev:app          # sync:player + sync:jsbeeb, then Vite
-# http://localhost:5173
-npm run build:app        # static dist/
+./app                    # sync + Vite preview (builds dist on first run)
+# http://127.0.0.1:4173
+npm run dev:app          # Vite dev server (developers)
 ```
 
 App must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
@@ -84,7 +77,7 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 
 ## Failure checklist
 
-1. Missing `sidpl.o` → `npm run build:player` (+ app will sync on `dev:app`).
+1. Missing `sidpl.o` → `./create` / `./app` copy goldens into `src.player/out/`.
 2. Vite/`MachineSession` fs errors → wrong preview host import.
 3. `*FREE` fails → model must be `B1770`, not `B-DFS1.2`.
 4. App ROMs/sounds missing → `npm run sync --prefix src.app`.
@@ -92,6 +85,8 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 
 ## More context
 
+- End-user run: [`README.md`](../../README.md)
+- Contributing (tests, goldens, API): [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Package boundaries: `../rules/package-boundaries.mdc`
 - Preview hosts: `../rules/preview-hosts.mdc`
 - Lineage: `../ARCHITECTURE.md`

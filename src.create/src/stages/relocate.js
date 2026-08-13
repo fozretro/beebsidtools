@@ -4,7 +4,7 @@
 
 import { relocateSid } from "../lib/sidreloc/index.js";
 
-/** Default BeebSID relocate flags (match convert_beebsid.sh). */
+/** Default BeebSID relocate flags (page $1A, SID $FC20). */
 export const DEFAULT_RELOC_OPTS = {
   force: true,
   keepZp: true,

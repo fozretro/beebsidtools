@@ -1,6 +1,7 @@
 /* JavaScript port of sidreloc 1.0 solver.c (DOM/BRK variant).
  *
  * Original C source: Copyright (c) 2012 Linus Akesson, MIT licence.
+ * DOM/BRK variant: Dominic Beesley (sidreloc-1.0-dom, sidplay-build / Stardot).
  */
 
 import {

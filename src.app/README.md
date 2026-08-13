@@ -6,19 +6,7 @@ with turbo preview from `beebsidtools-src-create/preview/browser`.
 CLI uses `preview/node` (`MachineSession` + `sharp`).
 
 ```bash
-# from beebsidtools/
-npm install --prefix src.create
-npm install --prefix src.app
-npm run build:player
-npm run dev:app          # syncs player + jsbeeb ROMs, then Vite
-# → http://localhost:5173
-```
-
-Static build (no Node create API required at runtime):
-
-```bash
-npm run build:app
-# serve src.app/dist/ (e.g. github.io)
+./app
 ```
 
 ## Status

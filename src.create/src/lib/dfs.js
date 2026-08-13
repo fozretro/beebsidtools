@@ -1,6 +1,6 @@
 /**
  * Minimal in-memory Acorn DFS SSD builder (80-track single-sided).
- * Layout matches tools/dfs-0.4 (catalogue in sectors 0–1, ≤31 files).
+ * Acorn DFS: catalogue in sectors 0–1, ≤31 files.
  */
 
 const SECTOR = 256;

@@ -1,4 +1,7 @@
-/** PSID/RSID header helpers (big-endian multi-byte fields). */
+/**
+ * PSID/RSID header helpers (big-endian multi-byte fields).
+ * Split out from Dominic Beesley's ripsid.c (sidplay-build / Stardot).
+ */
 
 export function readBe16(buf, offs) {
   return (buf[offs] << 8) | buf[offs + 1];

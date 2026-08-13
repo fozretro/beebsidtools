@@ -26,6 +26,7 @@ const CREDITS_TEXT = [
   "Credits",
   "",
   "Dominic Beesley         SIDPlayer, ripsid, dfs",
+  "  Stardot p=145147      original toolchain",
   "Linus Akesson           sidreloc",
   "Andrew Fawcett          sidreloc JavaScript port",
   "Matt Godbolt            jsbeeb",

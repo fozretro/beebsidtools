@@ -1,6 +1,7 @@
 /* JavaScript port of sidreloc 1.0 sidreloc.c (DOM/BRK variant).
  *
  * Original C source: Copyright (c) 2012 Linus Akesson, MIT licence.
+ * DOM/BRK output: Dominic Beesley (sidreloc-1.0-dom, sidplay-build / Stardot).
  *
  * The command-line front end becomes relocateSid(), which returns the output
  * file image together with the text the C program would have written to stdout
