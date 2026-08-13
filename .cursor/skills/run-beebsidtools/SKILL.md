@@ -18,14 +18,14 @@ Work from this repo root. End users: `./create` and `./app` (they install deps o
 | Unit/integration tests | `npm test` or `npm run test:fast` |
 | Convert one SID | `./create convert path/to/tune.sid -o /tmp/out` |
 | Pack SSD + menu PNG | `./create ssd path/to/*.sid -o /tmp/x.ssd --title=NAME` |
-| Disc Creator UI | `./app` |
+| Disc Creator UI | `./app` (`./app --clean` re-bootstraps) |
 | Refresh fixtures | `npm run update:golden-*` (see below) |
 
 Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `sids/` (e.g. `sids/Head_Over_Heels.sid`). Test fixtures stay under `src.create/test/golden/`.
 
 ## Setup
 
-`./create` and `./app` install Node packages and copy the bundled player on first run. Rebuild the player from BeebAsm only after player source changes (`npm run build:player`).
+`./create` and `./app` install Node packages and copy the bundled player on first run. `--clean` wipes those generated trees (and `logs/`) then bootstraps again. Rebuild the player from BeebAsm only after player source changes (`npm run build:player`).
 
 ## CLI create
 
@@ -75,7 +75,7 @@ npm run update:golden-player
 
 Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not a parent-repo `archive/`).
 
-`./create` and `./app` log first-run `npm install` / `build:app` under `logs/` (gitignored). TTY only shows Installing/Building then success, or one error with the log path.
+`./create` and `./app` log first-run work under `logs/` (gitignored). TTY only shows Building then success, or one error with the log path.
 
 ## Failure checklist
 
@@ -84,7 +84,7 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 3. `*FREE` fails → model must be `B1770`, not `B-DFS1.2`.
 4. App ROMs/sounds missing → `npm run sync --prefix src.app`.
 5. Patch unexpected → check `./create patches` / `--no-patch` / SID hash.
-6. First-run install/build failed → `logs/install-src.create.log`, `logs/install-src.app.log`, `logs/build-app.log`.
+6. First-run build failed → `logs/install-src.create.log` (`./create`) or `logs/build-app.log` (`./app`).
 
 ## More context
 

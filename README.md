@@ -32,6 +32,7 @@ two launchers — the first run installs the rest automatically.
 
 ```bash
 ./app
+./app --clean          # wipe installs/dist, then first-run bootstrap
 ```
 
 Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`.
@@ -55,7 +56,9 @@ Sample tunes are in `sids/`.
 ./create convert sids/Cybernoid.sid -o ~/Desktop/cyber
 ```
 
-`./create` with no arguments lists every option. Useful flags:
+`./create` with no arguments lists every option. `--clean` is a launcher flag (not passed to convert/ssd): it wipes `node_modules` / player copies / logs, then bootstraps and runs the rest of the command.
+
+Useful flags:
 
 | Flag | Meaning |
 |------|---------|

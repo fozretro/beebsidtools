@@ -14,6 +14,35 @@ ensure_node() {
   fi
 }
 
+# Sets LAUNCHER_CLEAN and LAUNCHER_ARGS (strips --clean from "$@").
+parse_launcher_args() {
+  LAUNCHER_CLEAN=0
+  LAUNCHER_ARGS=()
+  for arg in "$@"; do
+    case "$arg" in
+      --clean) LAUNCHER_CLEAN=1 ;;
+      *) LAUNCHER_ARGS+=("$arg") ;;
+    esac
+  done
+}
+
+# Wipe first-run artifacts so the next ensure_pkg / build bootstraps again.
+ensure_clean() {
+  echo "Cleaning generated files…"
+  rm -rf \
+    "$ROOT/src.create/node_modules" \
+    "$ROOT/src.app/node_modules" \
+    "$ROOT/node_modules" \
+    "$ROOT/src.player/out" \
+    "$ROOT/src.app/dist" \
+    "$ROOT/src.app/public/jsbeeb" \
+    "$ROOT/logs"
+  if [[ -d "$ROOT/src.app/public/player" ]]; then
+    find "$ROOT/src.app/public/player" -type f ! -name .gitkeep -delete
+  fi
+  echo "Cleaned."
+}
+
 # Run a command with stdout/stderr in logs/<name>. Short tty: doing → success, or one error.
 run_logged() {
   local name="$1"
@@ -36,10 +65,33 @@ ensure_pkg() {
   local dir="$1"
   if [[ ! -d "$ROOT/$dir/node_modules" ]]; then
     run_logged "install-${dir}.log" \
-      "Installing $dir (first run, may take a minute)…" \
-      "Installed $dir." \
+      "Building (first run, may take a minute)…" \
+      "Build succeeded." \
       npm install --prefix "$ROOT/$dir"
   fi
+}
+
+_bootstrap_app() {
+  if [[ ! -d "$ROOT/src.create/node_modules" ]]; then
+    npm install --prefix "$ROOT/src.create"
+  fi
+  if [[ ! -d "$ROOT/src.app/node_modules" ]]; then
+    npm install --prefix "$ROOT/src.app"
+  fi
+  if [[ ! -f "$ROOT/src.app/dist/index.html" ]]; then
+    npm run build:app --prefix "$ROOT"
+  fi
+}
+
+# One Building/success for ./app (create+app npm install and Vite dist).
+ensure_app_bootstrap() {
+  if [[ -d "$ROOT/src.create/node_modules" && -d "$ROOT/src.app/node_modules" && -f "$ROOT/src.app/dist/index.html" ]]; then
+    return
+  fi
+  run_logged "build-app.log" \
+    "Building (first run, may take a minute)…" \
+    "Build succeeded." \
+    _bootstrap_app
 }
 
 # Bundled goldens are enough to run; BeebAsm is only needed to rebuild the player.

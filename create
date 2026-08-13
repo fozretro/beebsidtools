@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
 # Convert SIDs / pack a BeebSID disc. First run installs Node deps if needed.
+# --clean wipes generated installs then bootstraps again (not passed to the CLI).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=scripts/ensure.sh
 source "$ROOT/scripts/ensure.sh"
+parse_launcher_args "$@"
 ensure_node
+if [[ "$LAUNCHER_CLEAN" -eq 1 ]]; then
+  ensure_clean
+fi
 ensure_pkg src.create
 ensure_player
-exec node "$ROOT/src.create/src/cli.js" "$@"
+if [[ ${#LAUNCHER_ARGS[@]} -eq 0 ]]; then
+  exec node "$ROOT/src.create/src/cli.js"
+fi
+exec node "$ROOT/src.create/src/cli.js" "${LAUNCHER_ARGS[@]}"
