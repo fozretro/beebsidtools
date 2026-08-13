@@ -51,7 +51,7 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 |-----|------|
 | [Dominic Beesley](https://stardot.org.uk/forums/viewtopic.php?p=145147#p145147) | SIDPlayer, ripsid, dfs |
 | Linus Akesson | sidreloc |
-| Andrew Fawcett | sidreloc JS port, BeebAsm player, Disc Creator |
+| Andrew Fawcett - !FOZ! | sidreloc JS port, BeebAsm player, Disc Creator |
 | Matt Godbolt | jsbeeb |
 | jhohertz | jsSID FastSID |
 | Ben Harris | Bedstead (MODE 7 font) |

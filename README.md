@@ -16,7 +16,7 @@ on Stardot ([SID — an idiots guide?](https://stardot.org.uk/forums/viewtopic.p
 |-----|------|
 | [Dominic Beesley](https://stardot.org.uk/forums/viewtopic.php?p=145147#p145147) | SIDPlayer, ripsid, dfs |
 | Linus Akesson | sidreloc |
-| Andrew Fawcett | sidreloc JavaScript port; BeebSID Disc Creator / beebsidtools |
+| Andrew Fawcett - !FOZ! | sidreloc JavaScript port; BeebSID Disc Creator / beebsidtools |
 | Matt Godbolt | jsbeeb |
 | jhohertz | jsSID FastSID |
 | Ben Harris | Bedstead (MODE 7 font) |

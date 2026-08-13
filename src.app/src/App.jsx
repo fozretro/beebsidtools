@@ -12,15 +12,40 @@ import {
   PLAYER_VERSION,
 } from "./versions.js";
 
+function formatColumns(rows, sep = " · ") {
+  const widths = [];
+  for (const row of rows) {
+    row.forEach((cell, i) => {
+      widths[i] = Math.max(widths[i] ?? 0, cell.length);
+    });
+  }
+  return rows.map((row) =>
+    row.map((cell, i) => cell.padEnd(widths[i])).join(sep).trimEnd(),
+  );
+}
+
 const HELP_TEXT = [
   "BeebSID Disc Creator",
-  "f1 Create Disc  ·  f2 Download Disc  ·  f3 Test Disc",
-  "f5 Clear list  ·  f6/f7 Move selected  ·  f8 Remove selected",
-  "f9 Credits  ·  f0 Help",
+  "",
+  ...formatColumns([
+    ["f1 Create Disc", "f2 Download Disc", "f3 Test Disc"],
+    ["f5 Clear list", "f6/f7 Move selected", "f8 Remove selected"],
+    ["f9 Credits", "f0 Help"],
+  ]),
+  "",
   "Drop .sid files or use Choose files, then Create Disc.",
   "",
-  `app ${APP_VERSION}  ·  create ${CREATE_VERSION}  ·  player ${PLAYER_VERSION}`,
+  `app v${APP_VERSION}  ·  create v${CREATE_VERSION}  ·  player v${PLAYER_VERSION}`,
 ].join("\n");
+
+const VERSION_BANNER = formatColumns(
+  [
+    ["app", `v${APP_VERSION}`],
+    ["create", `v${CREATE_VERSION}`],
+    ["player", `v${PLAYER_VERSION}`],
+  ],
+  " ",
+).join("\n");
 
 const CREDITS_TEXT = [
   "Credits",
@@ -28,13 +53,13 @@ const CREDITS_TEXT = [
   "Dominic Beesley         SIDPlayer, ripsid, dfs",
   "  Stardot p=145147      original toolchain",
   "Linus Akesson           sidreloc",
-  "Andrew Fawcett          sidreloc JavaScript port",
+  "Andrew Fawcett - !FOZ!  sidreloc JavaScript port",
   "Matt Godbolt            jsbeeb",
   "jhohertz                jsSID FastSID",
   "Ben Harris              Bedstead (MODE 7 font)",
   "Ian Piumarta            6502 CPU core (sidreloc)",
   "Stardot / BeebAsm       BBC assembler toolchain",
-  "Andrew Fawcett          BeebSID Disc Creator / beebsidtools",
+  "Andrew Fawcett - !FOZ!  BeebSID Disc Creator / beebsidtools",
 ].join("\n");
 
 function downloadBytes(bytes, filename, mime = "application/octet-stream") {
@@ -85,7 +110,7 @@ export default function App() {
   const [files, setFiles] = useState([]);
   const [selected, setSelected] = useState(-1);
   const [busy, setBusy] = useState(false);
-  const [log, setLog] = useState("");
+  const [log, setLog] = useState(CREDITS_TEXT);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [menuUrl, setMenuUrl] = useState(null);
@@ -351,11 +376,16 @@ export default function App() {
     <div className="app">
       <header className="machine-header" aria-label="BBC Micro inspired header">
         <div className="title-region mode7">
-          <h1 className="title-slot">BeebSID Disc Creator</h1>
-          <p className="subtitle-slot">
-            Drop SID music files to build a disc you can download and preview
-            here.
-          </p>
+          <div className="title-copy">
+            <h1 className="title-slot">BeebSID Disc Creator</h1>
+            <p className="subtitle-slot">
+              Drop SID music files to build a disc you can download and preview
+              here.
+            </p>
+          </div>
+          <pre className="version-slot" aria-label="Component versions">
+            {VERSION_BANNER}
+          </pre>
         </div>
 
         <div className="function-strip" aria-hidden="true">
