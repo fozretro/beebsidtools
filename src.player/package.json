@@ -10,6 +10,6 @@
     "update:golden-player": "node test/bin/update-golden-player.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=24.15.0"
   }
 }

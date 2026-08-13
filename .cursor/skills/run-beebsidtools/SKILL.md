@@ -9,7 +9,7 @@ description: >-
 
 # Run & test BeebSID Tools
 
-Work from this repo root. End users: `./create` and `./app` (they install deps on first run). Node ≥22.12. Rebuilding the player from source needs BeebAsm on `PATH` or `BEEBASM=…`.
+Work from this repo root. End users: `./create` and `./app` (they install deps on first run). Node ≥24.15 (same floor as jsbeeb). Rebuilding the player from source needs BeebAsm on `PATH` or `BEEBASM=…`.
 
 ## Quick decision
 
@@ -75,6 +75,8 @@ npm run update:golden-player
 
 Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not a parent-repo `archive/`).
 
+`./create` and `./app` log first-run `npm install` / `build:app` under `logs/` (gitignored). TTY only shows Installing/Building then success, or one error with the log path.
+
 ## Failure checklist
 
 1. Missing `sidpl.o` → `./create` / `./app` copy goldens into `src.player/out/`.
@@ -82,6 +84,7 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 3. `*FREE` fails → model must be `B1770`, not `B-DFS1.2`.
 4. App ROMs/sounds missing → `npm run sync --prefix src.app`.
 5. Patch unexpected → check `./create patches` / `--no-patch` / SID hash.
+6. First-run install/build failed → `logs/install-src.create.log`, `logs/install-src.app.log`, `logs/build-app.log`.
 
 ## More context
 

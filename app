@@ -11,7 +11,9 @@ ensure_pkg src.create
 ensure_pkg src.app
 ensure_player
 if [[ ! -f "$INDEX" ]]; then
-  echo "Building Disc Creator (first run, may take a minute)…"
-  npm run build:app --prefix "$ROOT"
+  run_logged "build-app.log" \
+    "Building Disc Creator (first run, may take a minute)…" \
+    "Build succeeded." \
+    npm run build:app --prefix "$ROOT"
 fi
 exec npm run preview --prefix "$ROOT/src.app" -- --host 127.0.0.1 --port "$PORT" --open

@@ -16,7 +16,7 @@
   "dependencies": {
     "beebsidtools-src-create": "file:../src.create",
     "buffer": "^6.0.3",
-    "jsbeeb": "^1.13.1",
+    "jsbeeb": "^1.17.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
@@ -24,7 +24,12 @@
     "@vitejs/plugin-react": "^4.5.2",
     "vite": "^6.3.5"
   },
+  "overrides": {
+    "electron": "file:../scripts/npm-empty",
+    "electron-builder": "file:../scripts/npm-empty",
+    "electron-store": "file:../scripts/npm-empty"
+  },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.15.0"
   }
 }

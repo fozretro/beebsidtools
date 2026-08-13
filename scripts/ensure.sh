@@ -3,22 +3,42 @@
 
 ensure_node() {
   if ! command -v node >/dev/null || ! command -v npm >/dev/null; then
-    echo "BeebSID Tools needs Node.js 22.12 or newer (includes npm)." >&2
+    echo "BeebSID Tools needs Node.js 24.15 or newer (includes npm)." >&2
     echo "Install from https://nodejs.org/ then try again." >&2
     exit 1
   fi
-  if ! node -e 'const [M,m]=process.versions.node.split(".").map(Number); process.exit(M>22||(M===22&&m>=12)?0:1)'; then
-    echo "BeebSID Tools needs Node.js 22.12 or newer (found $(node -v))." >&2
+  if ! node -e 'const [M,m]=process.versions.node.split(".").map(Number); process.exit(M>24||(M===24&&m>=15)?0:1)'; then
+    echo "BeebSID Tools needs Node.js 24.15 or newer (found $(node -v))." >&2
     echo "Install from https://nodejs.org/ then try again." >&2
     exit 1
   fi
 }
 
+# Run a command with stdout/stderr in logs/<name>. Short tty: doing → success, or one error.
+run_logged() {
+  local name="$1"
+  local doing="$2"
+  local ok="$3"
+  shift 3
+  local log="$ROOT/logs/$name"
+  mkdir -p "$ROOT/logs"
+  echo "$doing"
+  {
+    echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) $* ==="
+    "$@"
+  } >"$log" 2>&1 && echo "$ok" && return 0
+  echo "Failed: $doing" >&2
+  echo "See $log" >&2
+  exit 1
+}
+
 ensure_pkg() {
   local dir="$1"
   if [[ ! -d "$ROOT/$dir/node_modules" ]]; then
-    echo "Installing $dir (first run, may take a minute)…"
-    npm install --prefix "$ROOT/$dir"
+    run_logged "install-${dir}.log" \
+      "Installing $dir (first run, may take a minute)…" \
+      "Installed $dir." \
+      npm install --prefix "$ROOT/$dir"
   fi
 }
 

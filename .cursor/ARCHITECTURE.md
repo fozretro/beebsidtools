@@ -49,7 +49,7 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 
 [jsbeeb](https://github.com/mattgodbolt/jsbeeb) (Matt Godbolt) is a BBC Micro **emulator library** (`Cpu6502`, video, FDC, keyboard, sound chip, …). The same repo also ships a website ([bbc.xania.org](https://bbc.xania.org), wired in `src/main.js`) and an Electron shell. npm `exports` expose those internals plus a Node `MachineSession` (headless/MCP) and `TestMachine` — not a drop-in “BBC on a canvas” widget.
 
-We import the library pieces, not the website. Its emulated sound is the BBC SN76489 (plus Music 5000) — not BeebSID.
+We import the library pieces, not the website. Its emulated sound is the BBC SN76489 (plus Music 5000) — not BeebSID. Node ≥**24.15** matches jsbeeb 1.17.x (which already ships a patched `sharp`). We stub jsbeeb’s optional Electron packages so first-run `npm install` does not pull Chromium.
 
 ### Hosts
 

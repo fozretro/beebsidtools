@@ -1,0 +1,6 @@
+{
+  "name": "beebsidtools-npm-empty",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Stub so jsbeeb's optional Electron packages are not installed."
+}

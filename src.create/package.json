@@ -26,9 +26,14 @@
   },
   "dependencies": {
     "buffer": "^6.0.3",
-    "jsbeeb": "^1.13.1"
+    "jsbeeb": "^1.17.1"
+  },
+  "overrides": {
+    "electron": "file:../scripts/npm-empty",
+    "electron-builder": "file:../scripts/npm-empty",
+    "electron-store": "file:../scripts/npm-empty"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.15.0"
   }
 }

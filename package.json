@@ -22,6 +22,6 @@
     "build:app": "npm run sync --prefix src.app && npm run build --prefix src.app"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=24.15.0"
   }
 }

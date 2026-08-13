@@ -25,7 +25,7 @@ on Stardot ([SID — an idiots guide?](https://stardot.org.uk/forums/viewtopic.p
 
 ## Get started
 
-Install [Node.js](https://nodejs.org/) 22.12 or newer (once). After that, use the
+Install [Node.js](https://nodejs.org/) 24.15 or newer (once). After that, use the
 two launchers — the first run installs the rest automatically.
 
 ### Disc Creator (browser)
