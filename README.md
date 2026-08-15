@@ -39,11 +39,13 @@ Hosted on GitHub Pages: <https://fozretro.github.io/beebsidtools/>
 ```bash
 ./app
 ./app --clean          # wipe installs/dist, then first-run bootstrap
+./app --preview        # serve the static dist build (no live reload)
 ```
 
 ```bat
 .\app.cmd
 .\app.cmd --clean
+.\app.cmd --preview
 ```
 
 Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`.
