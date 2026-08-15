@@ -34,6 +34,7 @@ const HELP_TEXT = [
   "",
   "Drop .sid files, Choose files, or HVSC to browse a local collection.",
   "HVSC: folder tree, search by title/author/released/filename, Play, Add.",
+  "Play starts the SID default song; , / . or ‹ › step through songs.",
   "Index stays in this browser. Play listens with Hermit jsSID.",
   "",
   `BeebSID Tools v${TOOLS_VERSION}`,
@@ -184,6 +185,23 @@ export default function App() {
       return next;
     });
     setSelected(to);
+  }
+
+  function fileMatchesHvsc(f, row) {
+    if (f.hvscPath && f.hvscPath === row.path) return true;
+    return f.name === row.name && f.size === row.size;
+  }
+
+  function onRemoveHvsc(row) {
+    if (busy) return;
+    setFiles((prev) => {
+      const next = prev.filter((f) => !fileMatchesHvsc(f, row));
+      setSelected((i) => {
+        if (next.length === 0) return -1;
+        return Math.min(i, next.length - 1);
+      });
+      return next;
+    });
   }
 
   function removeSelected() {
@@ -548,7 +566,9 @@ export default function App() {
       <HvscBrowser
         open={hvscOpen}
         onClose={() => setHvscOpen(false)}
+        discFiles={files}
         onAddFiles={onFiles}
+        onRemoveFile={onRemoveHvsc}
         onLog={(line) => setLog((prev) => (prev ? `${prev}\n${line}` : line))}
       />
     </div>

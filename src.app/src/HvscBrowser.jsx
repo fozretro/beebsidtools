@@ -21,6 +21,7 @@ import {
   playSidBytes,
   resumeSid,
   setSidVolume,
+  startSidSubtune,
   stopSid,
   warmupSidPlayer,
 } from "./hvsc/playSid.js";
@@ -31,11 +32,20 @@ const LIST_CAP = 400;
  * @param {{
  *   open: boolean,
  *   onClose: () => void,
+ *   discFiles?: File[],
  *   onAddFiles: (files: File[]) => void,
+ *   onRemoveFile: (row: { path: string, name: string, size: number }) => void,
  *   onLog: (line: string) => void,
  * }} props
  */
-export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
+export default function HvscBrowser({
+  open,
+  onClose,
+  discFiles = [],
+  onAddFiles,
+  onRemoveFile,
+  onLog,
+}) {
   const [meta, setMeta] = useState(null);
   const [handle, setHandle] = useState(null);
   const [tunes, setTunes] = useState([]);
@@ -53,6 +63,8 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
   const [paused, setPaused] = useState(false);
   const [volume, setVolume] = useState(1);
   const [selectedPath, setSelectedPath] = useState("");
+  const [song, setSong] = useState(0);
+  const [songs, setSongs] = useState(1);
   const folderInputRef = useRef(null);
   const searchRef = useRef(null);
   const tableWrapRef = useRef(null);
@@ -73,6 +85,8 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
       stopSid();
       setPlayingPath("");
       setPaused(false);
+      setSong(0);
+      setSongs(1);
       setFieldOpen(false);
       return;
     }
@@ -114,6 +128,23 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [fieldOpen]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    function onKey(e) {
+      const tag = e.target?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.key === "," || e.key === "<" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        onSongStep(-1);
+      } else if (e.key === "." || e.key === ">" || e.key === "ArrowRight") {
+        e.preventDefault();
+        onSongStep(1);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, playingPath, song, songs]);
 
   const searching = Boolean(query.trim());
   const scopeFolder = scope === "folder" ? folder : "";
@@ -219,11 +250,13 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
     try {
       const file = await fileForRow(row);
       const bytes = new Uint8Array(await file.arrayBuffer());
-      await playSidBytes(bytes, 0);
+      const info = await playSidBytes(bytes);
       setSidVolume(volume);
       setPlayingPath(row.path);
       setPaused(false);
       setSelectedPath(row.path);
+      setSong(info.subtune);
+      setSongs(info.songs);
     } catch (err) {
       setError(err.message || String(err));
       setPlayingPath("");
@@ -233,6 +266,17 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
   function onStop() {
     stopSid();
     setPlayingPath("");
+    setPaused(false);
+    setSong(0);
+    setSongs(1);
+  }
+
+  function onSongStep(dir) {
+    if (!playingPath || songs < 2) return;
+    const next = song + dir;
+    if (next < 0 || next >= songs) return;
+    startSidSubtune(next);
+    setSong(next);
     setPaused(false);
   }
 
@@ -251,13 +295,26 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
     }
   }
 
+  function rowOnDisc(row) {
+    return discFiles.some(
+      (f) =>
+        (f.hvscPath && f.hvscPath === row.path) ||
+        (f.name === row.name && f.size === row.size),
+    );
+  }
+
   async function onAdd(row) {
     try {
       const file = await fileForRow(row);
+      file.hvscPath = row.path;
       onAddFiles([file]);
     } catch (err) {
       setError(err.message || String(err));
     }
+  }
+
+  function onRemove(row) {
+    onRemoveFile(row);
   }
 
   async function onForget() {
@@ -396,6 +453,27 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
               <button
                 type="button"
                 className="hvsc-icon-btn"
+                onClick={() => onSongStep(-1)}
+                disabled={!playingPath || song <= 0}
+                aria-label="Previous song"
+              >
+                ‹
+              </button>
+              <span className="hvsc-song" aria-live="polite">
+                {playingPath ? `${song + 1} / ${songs}` : "— / —"}
+              </span>
+              <button
+                type="button"
+                className="hvsc-icon-btn"
+                onClick={() => onSongStep(1)}
+                disabled={!playingPath || song + 1 >= songs}
+                aria-label="Next song"
+              >
+                ›
+              </button>
+              <button
+                type="button"
+                className="hvsc-icon-btn"
                 onClick={onTogglePlay}
                 disabled={!playingPath && !selectedPath}
                 aria-label={paused || !playingPath ? "Play" : "Pause"}
@@ -433,7 +511,7 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
             </div>
             <p className="hvsc-now">
               {playing
-                ? `${paused ? "Paused" : "Playing"} · ${playing.title}`
+                ? `${paused ? "Paused" : "Playing"} · ${playing.title} · song ${song + 1}/${songs}`
                 : status}
             </p>
             <div className="hvsc-lib">
@@ -568,9 +646,19 @@ export default function HvscBrowser({ open, onClose, onAddFiles, onLog }) {
                         </span>
                         <span className="hvsc-td hvsc-td--act">
                           {isTune ? (
-                            <button type="button" onClick={() => void onAdd(row)}>
-                              Add
-                            </button>
+                            rowOnDisc(row) ? (
+                              <button
+                                type="button"
+                                className="hvsc-remove"
+                                onClick={() => onRemove(row)}
+                              >
+                                Remove
+                              </button>
+                            ) : (
+                              <button type="button" onClick={() => void onAdd(row)}>
+                                Add
+                              </button>
+                            )
                           ) : null}
                         </span>
                       </div>

@@ -877,7 +877,16 @@ body {
 
 .hvsc-transport {
   display: flex;
+  align-items: center;
   gap: 0.35rem;
+}
+
+.hvsc-song {
+  min-width: 4.2rem;
+  text-align: center;
+  color: #c8c8c8;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
 }
 
 .hvsc-icon-btn {
@@ -986,7 +995,7 @@ body {
   display: grid;
   grid-template-columns:
     minmax(14rem, 2.2fr) 3.4rem minmax(8rem, 1.2fr) minmax(7rem, 1fr)
-    minmax(10rem, 1.4fr) 3.4rem;
+    minmax(10rem, 1.4fr) 4.6rem;
   column-gap: 0.55rem;
   align-items: center;
 }
@@ -1089,6 +1098,11 @@ body {
   background: #211f19;
   color: #efe6d7;
   border: 1px solid #555;
+}
+
+.hvsc-td--act button.hvsc-remove {
+  border-color: #8a4a44;
+  color: #e8c4c0;
 }
 
 .hvsc-empty {

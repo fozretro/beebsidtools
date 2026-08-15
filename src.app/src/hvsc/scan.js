@@ -70,6 +70,7 @@ export async function indexDirectory(root, onProgress) {
           release: psid.release || "",
           magic: psid.magic,
           songs: psid.numsongs,
+          startSong: psid.defsong,
           play: psid.playaddr,
           size: file.size,
         });
@@ -110,6 +111,7 @@ export async function indexDroppedFiles(fileList, onProgress) {
         release: psid.release || "",
         magic: psid.magic,
         songs: psid.numsongs,
+        startSong: psid.defsong,
         play: psid.playaddr,
         size: file.size,
         file,
