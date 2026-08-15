@@ -16,7 +16,7 @@ on Stardot ([SID — an idiots guide?](https://stardot.org.uk/forums/viewtopic.p
 | Who | Role |
 |-----|------|
 | [Dominic Beesley](https://stardot.org.uk/forums/viewtopic.php?p=145147#p145147) | SIDPlayer, ripsid, dfs |
-| Linus Akesson | sidreloc |
+| [Linus Akesson](https://www.linusakesson.net/software/sidreloc/index.php) | sidreloc |
 | Andrew Fawcett - !FOZ! | sidreloc JavaScript port; BeebSID Disc Creator / beebsidtools |
 | Matt Godbolt | jsbeeb |
 | jhohertz | jsSID FastSID |
@@ -87,6 +87,13 @@ Useful flags:
 | `--page=HH` / `--sid-dest=HHHH` | Relocate dest page / BeebSID address (convert experiments; defaults `$1A` / `$FC20`) |
 | `--no-keep-zp` / `--zp=LO-HI` | Remap zero-page (default is keep; SIDPLAY saves/restores `$70`–`$FF`) |
 | `--no-force` | Abort relocate on SID verify mismatch |
+
+Relocate flag names match [Linus Akesson’s sidreloc](https://www.linusakesson.net/software/sidreloc/index.php).
+BeebSID defaults differ from a stock `sidreloc` run: page `$1A`, SID `$FC20`,
+`--force`, and `--keep-zp` (the player saves and restores `$70`–`$FF`). Stock
+sidreloc uses page `$10`, remaps zero-page into `$80`–`$FF`, leaves the SID at
+`$D400`, and does not force verify mismatches. See
+[`ARCHITECTURE.md`](ARCHITECTURE.md#relocation-parameters).
 
 ## Contributing
 

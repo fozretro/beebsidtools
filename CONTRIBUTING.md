@@ -47,6 +47,8 @@ rip → .bbcsid ─────────────────┐
 | [`src.app/`](src.app/) | Thin UI over the create API |
 
 Architecture and lineage: [`ARCHITECTURE.md`](ARCHITECTURE.md).
+Relocate is a JS port of [Linus Akesson’s sidreloc](https://www.linusakesson.net/software/sidreloc/index.php)
+(same flags; BeebSID defaults are page `$1A`, SID `$FC20`, force, keep-zp).
 
 ## Package boundaries
 

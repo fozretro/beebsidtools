@@ -32,7 +32,7 @@ This repo is a port of Dominic Beesley’s Stardot SIDPlayer convert/player tool
 | Who | Role |
 |-----|------|
 | [Dominic Beesley](https://stardot.org.uk/forums/viewtopic.php?p=145147#p145147) | SIDPlayer, ripsid, dfs |
-| Linus Akesson | sidreloc |
+| [Linus Akesson](https://www.linusakesson.net/software/sidreloc/index.php) | sidreloc |
 | Andrew Fawcett - !FOZ! | sidreloc JS port, BeebAsm player, Disc Creator |
 | Matt Godbolt | jsbeeb |
 | jhohertz | jsSID FastSID |
@@ -118,7 +118,7 @@ Load address must stay on page `$1A`. The `.vars` file is the ripsid log (`SID_L
 
 ### Relocation parameters
 
-`relocateStage` always calls `relocateSid` with `DEFAULT_RELOC_OPTS` (`src.create/src/stages/relocate.js`). Patches may merge extra `relocOpts` (e.g. RoboCop raises `initCycles`). Equivalent C sidreloc flags: `-f -k --page 1A --sid-dest FC20`.
+`relocateStage` always calls `relocateSid` with `DEFAULT_RELOC_OPTS` (`src.create/src/stages/relocate.js`). Patches may merge extra `relocOpts` (e.g. RoboCop raises `initCycles`). Equivalent C sidreloc flags: `-f -k --page 1A --sid-dest FC20`. Linus Akesson’s [sidreloc](https://www.linusakesson.net/software/sidreloc/index.php) page is the write-up of how the relocator traces, verifies, and rewrites a SID.
 
 | Option | Default | sidreloc flag | Meaning |
 |--------|---------|---------------|---------|
