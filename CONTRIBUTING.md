@@ -1,8 +1,9 @@
 # Contributing
 
 Thanks for helping with BeebSID Tools. End-user run instructions live in
-[`README.md`](README.md) (`./create` and `./app`). Architecture and lineage:
-[`.cursor/ARCHITECTURE.md`](.cursor/ARCHITECTURE.md). This file is for changing
+[`README.md`](README.md) (`./create` / `./app`, or `.\create.cmd` / `.\app.cmd`
+on Windows). Architecture and lineage:
+[`ARCHITECTURE.md`](ARCHITECTURE.md). This file is for changing
 the code.
 
 ## Pull requests
@@ -17,13 +18,14 @@ the code.
 ## Layout
 
 ```text
-create                 convert SIDs / pack a disc (bootstraps on first run)
-app                    Disc Creator in a browser (bootstraps on first run)
+create / create.cmd    convert SIDs / pack a disc (bootstraps on first run)
+app / app.cmd          Disc Creator in a browser (bootstraps on first run)
 sids/                  sample SIDs for manual runs
 src.create/            convert + SSD pack + preview hosts
 src.player/            BeebAsm SIDPLAY / SIDPELK
 src.app/               BeebSID Disc Creator (Vite + React)
-scripts/ensure.sh      first-run install for the launchers
+scripts/ensure.sh      first-run install for the Unix launchers
+scripts/ensure.cmd     first-run install for the Windows launchers
 ```
 
 ```text
@@ -44,7 +46,7 @@ rip → .bbcsid ─────────────────┐
 | [`src.player/`](src.player/) | SIDPLAY / SIDPELK; goldens in [`src.player/test/`](src.player/test/) |
 | [`src.app/`](src.app/) | Thin UI over the create API |
 
-Architecture and lineage: [`.cursor/ARCHITECTURE.md`](.cursor/ARCHITECTURE.md).
+Architecture and lineage: [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Package boundaries
 

@@ -5,7 +5,8 @@ Dominic Beesley's original convert/player tools. In-memory **create**
 pipeline, BeebAsm **player**, and the **BeebSID Disc Creator** web UI.
 You can listen to converted SIDs here through jsbeeb + FastSID emulation.
 Playing on physical hardware needs a BeebSID on the BBC Micro's 1MHz bus,
-or a Pi1MHz with BeebSID emulation enabled.
+or a Pi1MHz with BeebSID emulation enabled. How the tools fit together:
+[`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Credits
 
@@ -28,6 +29,9 @@ on Stardot ([SID — an idiots guide?](https://stardot.org.uk/forums/viewtopic.p
 Install [Node.js](https://nodejs.org/) 24.15 or newer (once). After that, use the
 two launchers — the first run installs the rest automatically.
 
+From the repo root: `./app` and `./create` on macOS, Linux, or Git Bash;
+`.\app.cmd` and `.\create.cmd` on Windows (PowerShell or cmd).
+
 ### Disc Creator (browser)
 
 Hosted on GitHub Pages: <https://fozretro.github.io/beebsidtools/>
@@ -37,6 +41,11 @@ Hosted on GitHub Pages: <https://fozretro.github.io/beebsidtools/>
 ./app --clean          # wipe installs/dist, then first-run bootstrap
 ```
 
+```bat
+.\app.cmd
+.\app.cmd --clean
+```
+
 Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`.
 First run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
 
@@ -44,7 +53,7 @@ Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits,
 
 ### Command line
 
-Sample tunes are in `sids/`.
+Sample tunes are in `sids/`. On Windows, use `.\create.cmd` in place of `./create`.
 
 ```bash
 # One tune → a bootable disc (plus a menu preview image)
@@ -58,7 +67,14 @@ Sample tunes are in `sids/`.
 ./create convert sids/Cybernoid.sid -o ~/Desktop/cyber
 ```
 
-`./create` with no arguments lists every option. `--clean` is a launcher flag (not passed to convert/ssd): it wipes `node_modules` / player copies / logs, then bootstraps and runs the rest of the command.
+```bat
+.\create.cmd ssd sids\Head_Over_Heels.sid -o out\hoh.ssd
+.\create.cmd convert sids\Cybernoid.sid -o out\cyber
+```
+
+`./create` / `.\create.cmd` with no arguments lists every option. `--clean` is a
+launcher flag (not passed to convert/ssd): it wipes `node_modules` / player
+copies / logs, then bootstraps and runs the rest of the command.
 
 Useful flags:
 

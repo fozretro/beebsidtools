@@ -1,12 +1,12 @@
 ---
 description: BeebSID Tools architecture lineage — archive vs active toolchain
-globs: README.md,.cursor/ARCHITECTURE.md,src.*/**/*
+globs: README.md,ARCHITECTURE.md,src.*/**/*
 alwaysApply: false
 ---
 
 # Architecture & lineage
 
-Full narrative: [ARCHITECTURE.md](../ARCHITECTURE.md).
+Full narrative: [ARCHITECTURE.md](../../ARCHITECTURE.md).
 
 ## Active vs historic
 

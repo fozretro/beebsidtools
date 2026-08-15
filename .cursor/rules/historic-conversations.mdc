@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Historic Cursor chats (`.tmp/conversations/`)
 
-This tree was lifted from a parent repo. Design intent that is not in code or `.cursor/ARCHITECTURE.md` often lives in **local** conversation dumps (gitignored — skip if the folder is missing).
+This tree was lifted from a parent repo. Design intent that is not in code or `ARCHITECTURE.md` often lives in **local** conversation dumps (gitignored — skip if the folder is missing).
 
 Start at [`.tmp/conversations/README.md`](../../.tmp/conversations/README.md). Prefer the `.md` dumps over `.jsonl`. **Search / read slices** — do not ingest a whole thread.
 

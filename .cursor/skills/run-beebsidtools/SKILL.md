@@ -92,4 +92,4 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 - Contributing (tests, goldens, API): [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Package boundaries: `../rules/package-boundaries.mdc`
 - Preview hosts: `../rules/preview-hosts.mdc`
-- Lineage: `../ARCHITECTURE.md`
+- Lineage: [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
