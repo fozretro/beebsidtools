@@ -4,9 +4,66 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BeebSID Disc Creator</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        height: 100%;
+        background: #0f0e0b;
+      }
+      .boot {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7rem;
+        color: #62d853;
+        font-family: "Courier New", Courier, monospace;
+        font-size: 14px;
+      }
+      .boot-title {
+        margin: 0;
+        color: #efe6d7;
+        letter-spacing: 0.04em;
+      }
+      .boot-track {
+        width: min(22rem, 70vw);
+        height: 12px;
+        overflow: hidden;
+        background: #11110f;
+        border: 1px solid #6d5d46;
+      }
+      .boot-fill {
+        height: 100%;
+        width: 32%;
+        background: #62d853;
+        animation: boot-slide 1.15s ease-in-out infinite;
+      }
+      @keyframes boot-slide {
+        0% {
+          transform: translateX(-40%);
+        }
+        100% {
+          transform: translateX(360%);
+        }
+      }
+      .boot-msg {
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" role="status" aria-live="polite">
+        <p class="boot-title">BeebSID Disc Creator</p>
+        <div class="boot-track" aria-hidden="true">
+          <div class="boot-fill"></div>
+        </div>
+        <p class="boot-msg">Loading…</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
