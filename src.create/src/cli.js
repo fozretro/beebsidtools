@@ -37,6 +37,8 @@ function usage(code = 1) {
   console.log(`Usage:
   create convert <in.sid...> [--ssd] [--title=NAME] [--sidplay=path]
            [--sidpelk] [--hex=path] [--patch=id] [--no-patch]
+           [--page=HH] [--sid-dest=HHHH] [--force|--no-force]
+           [--keep-zp|--no-keep-zp] [--zp=LO-HI]
            [--no-preview] [--record-audio] [-o outdir|out.ssd]
   create ssd <in.sid...> [same options] [-o out.ssd]
   create patches
@@ -44,10 +46,32 @@ function usage(code = 1) {
   Multiple .sid inputs are converted in order, then packed into one SSD
   when using "ssd", --ssd, or -o *.ssd.
   Patches run pre-/post-relocate automatically (see create patches).
+  Relocate defaults are page $1A, SID $FC20, --force, --keep-zp (BeebSID /
+  SIDPLAY). Override on convert to experiment; a different page or SID dest
+  will not play in the bundled player.
   SSD create runs headless preview via createSsd({ preview }) → menu.png
   (skip with --no-preview). --record-audio adds ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune.
 `);
   process.exit(code);
+}
+
+function parseHex(s, name) {
+  const t = String(s).trim();
+  if (!t || /[^0-9a-fA-F]/.test(t)) {
+    console.error(`Invalid ${name}: ${s}`);
+    usage();
+  }
+  return parseInt(t, 16);
+}
+
+function takeOpt(args, i, a, name) {
+  if (a.startsWith(`${name}=`)) return { value: a.slice(name.length + 1), i };
+  if (a === name) {
+    const value = args[i + 1];
+    if (!value) usage();
+    return { value, i: i + 1 };
+  }
+  return null;
 }
 
 function parseArgs(argv) {
@@ -63,9 +87,14 @@ function parseArgs(argv) {
   let title = null;
   let sidplayPath = null;
   let hexPath = null;
+  /** @type {Record<string, unknown>} */
+  const reloc = {};
 
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
+    const pageOpt = takeOpt(args, i, a, "--page");
+    const sidDestOpt = takeOpt(args, i, a, "--sid-dest");
+    const zpOpt = takeOpt(args, i, a, "--zp");
     if (a === "--no-patch") {
       patch = false;
     } else if (a === "--patch") {
@@ -73,6 +102,29 @@ function parseArgs(argv) {
     } else if (a.startsWith("--patch=")) {
       patch = a.slice("--patch=".length);
       if (!patch) usage();
+    } else if (pageOpt) {
+      reloc.page = parseHex(pageOpt.value, "--page");
+      i = pageOpt.i;
+    } else if (sidDestOpt) {
+      reloc.sidDest = parseHex(sidDestOpt.value, "--sid-dest");
+      i = sidDestOpt.i;
+    } else if (zpOpt) {
+      const parts = zpOpt.value.split("-");
+      if (parts.length !== 2) {
+        console.error(`Invalid --zp (use LO-HI hex): ${zpOpt.value}`);
+        usage();
+      }
+      reloc.zpFirst = parseHex(parts[0], "--zp");
+      reloc.zpLast = parseHex(parts[1], "--zp");
+      i = zpOpt.i;
+    } else if (a === "--force") {
+      reloc.force = true;
+    } else if (a === "--no-force") {
+      reloc.force = false;
+    } else if (a === "--keep-zp") {
+      reloc.keepZp = true;
+    } else if (a === "--no-keep-zp") {
+      reloc.keepZp = false;
     } else if (a === "--ssd") {
       flags.add("ssd");
     } else if (a === "--sidpelk") {
@@ -107,7 +159,7 @@ function parseArgs(argv) {
     }
   }
 
-  return { cmd, flags, positional, out, patch, title, sidplayPath, hexPath };
+  return { cmd, flags, positional, out, patch, title, sidplayPath, hexPath, reloc };
 }
 
 function resolvePlayerFile(name, explicit, fallbacks) {
@@ -179,7 +231,7 @@ function previewOptsFromFlags(flags) {
 }
 
 async function cmdConvert(opts) {
-  const { flags, positional, out, patch, title, sidplayPath, hexPath } = opts;
+  const { flags, positional, out, patch, title, sidplayPath, hexPath, reloc } = opts;
   if (positional.length === 0) usage();
 
   const inputs = loadSidInputs(positional);
@@ -202,7 +254,7 @@ async function cmdConvert(opts) {
   mkdirSync(outDir, { recursive: true });
 
   if (!wantSsd) {
-    const { tunes, log } = await convertSids(inputs, { patch });
+    const { tunes, log } = await convertSids(inputs, { patch, reloc });
     for (const tune of tunes) writeTuneOutputs(outDir, tune);
     for (const line of log) console.error(line);
     if (tunes.length === 1) {
@@ -230,6 +282,7 @@ async function cmdConvert(opts) {
   const result = await createSsd(inputs, {
     assets,
     patch,
+    reloc,
     title: title ?? "BEEBSID",
     includeSidpelk,
     preview,

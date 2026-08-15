@@ -85,6 +85,7 @@ export function normalizeSidInputs(inputs) {
  * @param {object} [opts]
  * @param {string} [opts.baseName='tune']
  * @param {true|string|false} [opts.patch=true]
+ * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
  */
 export async function convertSid(inputSid, opts = {}) {
   const baseName = opts.baseName ?? "tune";
@@ -92,7 +93,7 @@ export async function convertSid(inputSid, opts = {}) {
   const ctx = await runPipeline(
     [
       prePatchStage({ patch: opts.patch ?? true }),
-      relocateStage(),
+      relocateStage({ reloc: opts.reloc }),
       postPatchStage({ patch: opts.patch ?? true }),
       ripStage(),
     ],
@@ -120,10 +121,11 @@ export async function convertSid(inputSid, opts = {}) {
  * @param {Parameters<typeof normalizeSidInputs>[0]} inputs
  * @param {object} [opts]
  * @param {true|string|false} [opts.patch=true]
+ * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
  */
 export async function convertSids(inputs, opts = {}) {
   const ctx = await runPipeline(
-    [convertTunesStage({ patch: opts.patch ?? true })],
+    [convertTunesStage({ patch: opts.patch ?? true, reloc: opts.reloc })],
     createContext({ inputs: normalizeSidInputs(inputs) }),
   );
   return { tunes: ctx.tunes, log: ctx.log, meta: ctx.meta };
@@ -136,6 +138,7 @@ export async function convertSids(inputs, opts = {}) {
  * @param {object} opts
  * @param {{ sidplay: Buffer|Uint8Array, sidpelk?: Buffer|Uint8Array, hex?: Buffer|Uint8Array }} opts.assets
  * @param {true|string|false} [opts.patch=true]
+ * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
  * @param {string} [opts.title='BEEBSID']
  * @param {boolean} [opts.includeSidpelk=false]
  * @param {boolean|{
@@ -155,7 +158,7 @@ export async function createSsd(inputs, opts = {}) {
   }
 
   const stages = [
-    convertTunesStage({ patch: opts.patch ?? true }),
+    convertTunesStage({ patch: opts.patch ?? true, reloc: opts.reloc }),
     packSsdStage({
       title: opts.title,
       includeSidpelk: opts.includeSidpelk,

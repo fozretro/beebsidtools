@@ -84,6 +84,9 @@ Useful flags:
 | `--no-preview` | Skip the menu screenshot |
 | `--record-audio` | Also write short preview WAVs |
 | `--no-patch` | Skip built-in hardware patches |
+| `--page=HH` / `--sid-dest=HHHH` | Relocate dest page / BeebSID address (convert experiments; defaults `$1A` / `$FC20`) |
+| `--no-keep-zp` / `--zp=LO-HI` | Remap zero-page (default is keep; SIDPLAY saves/restores `$70`–`$FF`) |
+| `--no-force` | Abort relocate on SID verify mismatch |
 
 ## Contributing
 

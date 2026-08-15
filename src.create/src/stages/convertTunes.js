@@ -14,9 +14,11 @@ import { titleFromStem } from "../lib/menu.js";
 /**
  * @param {object} [opts]
  * @param {true|string|false} [opts.patch=true] default patch policy for all tunes
+ * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
  */
 export function convertTunesStage(opts = {}) {
   const defaultPatch = opts.patch === undefined ? true : opts.patch;
+  const reloc = opts.reloc;
 
   return {
     name: "convert-tunes",
@@ -38,7 +40,7 @@ export function convertTunesStage(opts = {}) {
         let one = await runPipeline(
           [
             prePatchStage({ patch }),
-            relocateStage(),
+            relocateStage({ reloc }),
             postPatchStage({ patch }),
             ripStage(),
           ],
