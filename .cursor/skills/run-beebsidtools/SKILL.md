@@ -53,7 +53,7 @@ npm run dev:app          # Vite dev server (developers)
 
 App must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
 
-Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f9 Credits, f0 Help (versions).
+Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f9 Credits, f0 Help (version + release notes).
 
 ## Tests
 

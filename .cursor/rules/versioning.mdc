@@ -1,0 +1,16 @@
+---
+description: Lockstep BeebSID Tools version and shared GitHub/Help release notes
+alwaysApply: true
+---
+
+# Versioning and releases
+
+One semver for the whole product. Root `package.json` is the source of truth. Copy it to `src.create`, `src.player`, and `src.app` with `node scripts/sync-versions.js`. Do not version create / player / app independently.
+
+- Stay on `0.x` until a disc from this tree is the compatibility promise; then `1.0.0`.
+- First release is `0.1.0` (git tag `v0.1.0`).
+- Notes live in `releases/<version>.md` — **same text** for the GitHub Release body and Disc Creator Help (f0).
+- Help / header show `BeebSID Tools vX.Y.Z`, not three component versions.
+- Pages deploys `main`; the tag is the named snapshot.
+
+When cutting a release: write `releases/X.Y.Z.md`, bump root version, run `sync-versions`, commit, then `node scripts/publish-release.js` (`gh release create` + `--notes-file`).

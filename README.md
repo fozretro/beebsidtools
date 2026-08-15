@@ -49,7 +49,7 @@ Hosted on GitHub Pages: <https://fozretro.github.io/beebsidtools/>
 Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`.
 First run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
 
-Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits, **f0** Help.
+Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits, **f0** Help (version and release notes).
 
 ### Command line
 

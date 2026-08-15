@@ -42,6 +42,7 @@ function usage(code = 1) {
            [--no-preview] [--record-audio] [-o outdir|out.ssd]
   create ssd <in.sid...> [same options] [-o out.ssd]
   create patches
+  create --version
 
   Multiple .sid inputs are converted in order, then packed into one SSD
   when using "ssd", --ssd, or -o *.ssd.
@@ -78,6 +79,13 @@ function takeOpt(args, i, a, name) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   if (args.length === 0 || args[0] === "-h" || args[0] === "--help") usage(0);
+  if (args[0] === "-v" || args[0] === "--version") {
+    const pkg = JSON.parse(
+      readFileSync(join(BEEBSIDTOOLS, "package.json"), "utf8"),
+    );
+    console.log(`BeebSID Tools ${pkg.version}`);
+    process.exit(0);
+  }
 
   const cmd = args.shift();
   const flags = new Set();

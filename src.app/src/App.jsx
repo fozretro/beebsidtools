@@ -7,11 +7,8 @@ import {
 } from "beebsidtools-src-create/preview/browser";
 import LivePreviewModal from "./LivePreviewModal.jsx";
 import { publicUrl } from "./publicUrl.js";
-import {
-  APP_VERSION,
-  CREATE_VERSION,
-  PLAYER_VERSION,
-} from "./versions.js";
+import { TOOLS_VERSION } from "./versions.js";
+import { formatReleaseNotes } from "./releaseNotes.js";
 
 function formatColumns(rows, sep = " · ") {
   const widths = [];
@@ -36,17 +33,12 @@ const HELP_TEXT = [
   "",
   "Drop .sid files or use Choose files, then Create Disc.",
   "",
-  `app v${APP_VERSION}  ·  create v${CREATE_VERSION}  ·  player v${PLAYER_VERSION}`,
+  `BeebSID Tools v${TOOLS_VERSION}`,
+  "",
+  formatReleaseNotes(),
 ].join("\n");
 
-const VERSION_BANNER = formatColumns(
-  [
-    ["app", `v${APP_VERSION}`],
-    ["create", `v${CREATE_VERSION}`],
-    ["player", `v${PLAYER_VERSION}`],
-  ],
-  " ",
-).join("\n");
+const VERSION_BANNER = `BeebSID Tools\nv${TOOLS_VERSION}`;
 
 const CREDITS_TEXT = [
   "Credits",
@@ -384,7 +376,7 @@ export default function App() {
               here.
             </p>
           </div>
-          <pre className="version-slot" aria-label="Component versions">
+          <pre className="version-slot" aria-label="BeebSID Tools version">
             {VERSION_BANNER}
           </pre>
         </div>

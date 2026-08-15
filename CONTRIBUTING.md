@@ -15,6 +15,22 @@ the code.
 - Run `npm test` (or `npm run test:fast`) before you push.
 - Only update goldens when the change is intentional (`npm run update:golden-*`).
 
+## Releases
+
+One product version (root `package.json`). Create, player, and app stay on the
+same number (`npm run sync-versions`). Notes in `releases/<version>.md` are
+the GitHub Release body **and** Disc Creator Help (f0).
+
+```bash
+# after writing releases/X.Y.Z.md and bumping root version
+npm run sync-versions
+# commit, push
+npm run publish-release    # gh release create vX.Y.Z --notes-file …
+```
+
+First release is `0.1.0`. Stay on `0.x` until a disc from this tree is the
+compatibility promise. See `.cursor/rules/versioning.mdc`.
+
 ## Layout
 
 ```text

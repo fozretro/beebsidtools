@@ -19,7 +19,9 @@
     "update:golden-player": "npm run update:golden-player --prefix src.player",
     "build:player": "npm run build --prefix src.player",
     "dev:app": "npm run sync --prefix src.app && npm run dev --prefix src.app",
-    "build:app": "npm run sync --prefix src.app && npm run build --prefix src.app"
+    "build:app": "npm run sync --prefix src.app && npm run build --prefix src.app",
+    "sync-versions": "node scripts/sync-versions.js",
+    "publish-release": "node scripts/publish-release.js"
   },
   "engines": {
     "node": ">=24.15.0"

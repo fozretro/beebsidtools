@@ -31,8 +31,10 @@ export default defineConfig({
       // Allow serving / importing vendored FastSID + jsbeeb from create package
       allow: [
         HERE,
+        join(HERE, ".."),
         join(HERE, "../src.create"),
         join(HERE, "../src.player"),
+        join(HERE, "../releases"),
       ],
     },
   },
