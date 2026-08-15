@@ -19,6 +19,15 @@ export { ripSid } from "./lib/ripsid.js";
 export { relocateSid } from "./lib/sidreloc/index.js";
 export { packBeebSidSsd, SSD_ADDR } from "./lib/ssd.js";
 export {
+  TUNE_LOAD,
+  SIDPLAY_LOAD,
+  SIDPELK_LOAD,
+  bbcSidMaxBytes,
+  describeTuneRam,
+  formatTuneRam,
+  assertTuneFitsRam,
+} from "./lib/tuneRam.js";
+export {
   buildMenu,
   buildBoot,
   dfsTuneName,
@@ -53,6 +62,7 @@ import { ripStage } from "./stages/rip.js";
 import { convertTunesStage } from "./stages/convertTunes.js";
 import { packSsdStage } from "./stages/ssd.js";
 import { sha256Hex } from "./lib/patchRegistry.js";
+import { SIDPELK_LOAD, SIDPLAY_LOAD, assertTuneFitsRam } from "./lib/tuneRam.js";
 
 /**
  * @param {Buffer|Uint8Array|{sid:Buffer|Uint8Array,baseName?:string,title?:string,patch?:true|string|false,dfsName?:string}|Array} inputs
@@ -103,6 +113,7 @@ export async function convertSid(inputSid, opts = {}) {
       meta: { inputSha256: sha256Hex(buf) },
     }),
   );
+  assertTuneFitsRam(ctx.bbcSid, { name: baseName });
   return {
     relSid: ctx.relSid,
     brkText: ctx.brkText,
@@ -125,7 +136,13 @@ export async function convertSid(inputSid, opts = {}) {
  */
 export async function convertSids(inputs, opts = {}) {
   const ctx = await runPipeline(
-    [convertTunesStage({ patch: opts.patch ?? true, reloc: opts.reloc })],
+    [
+      convertTunesStage({
+        patch: opts.patch ?? true,
+        reloc: opts.reloc,
+        tooLarge: "fail",
+      }),
+    ],
     createContext({ inputs: normalizeSidInputs(inputs) }),
   );
   return { tunes: ctx.tunes, log: ctx.log, meta: ctx.meta };
@@ -158,7 +175,12 @@ export async function createSsd(inputs, opts = {}) {
   }
 
   const stages = [
-    convertTunesStage({ patch: opts.patch ?? true, reloc: opts.reloc }),
+    convertTunesStage({
+      patch: opts.patch ?? true,
+      reloc: opts.reloc,
+      tooLarge: "skip",
+      playerLoad: opts.includeSidpelk ? SIDPELK_LOAD : SIDPLAY_LOAD,
+    }),
     packSsdStage({
       title: opts.title,
       includeSidpelk: opts.includeSidpelk,

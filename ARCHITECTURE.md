@@ -10,6 +10,7 @@ Standalone C64 SID → BeebSID toolchain. Tests and goldens live **in this repo*
   - [app](#app)
 - [Create Tool Output](#create-tool-output)
   - [`.bbcsid` layout](#bbcsid-layout)
+  - [RAM budget](#ram-budget)
   - [Relocation parameters](#relocation-parameters)
 - [How jsbeeb is used](#how-jsbeeb-is-used)
   - [Hosts](#hosts)
@@ -115,6 +116,17 @@ Each `.brk` site in the payload is rewritten from a SID **store** (`STA/STX/STY 
 Stores to the three **gate/control** registers (`$FC24`, `$FC2B`, `$FC32` = SID `$D404`/`$D40B`/`$D412`) get a 22-byte stub: the dual write, then if the stored value has bit 0 clear, set `GATE_PULSE+$voice` at `$0740` so SIDPLAY can force a rising gate edge on the next play tick.
 
 Load address must stay on page `$1A`. The `.vars` file is the ripsid log (`SID_LOAD`, `SID_INIT`, `BRK_…`).
+
+### RAM budget
+
+A `.bbcsid` `*LOAD`s at `$19F8`. SIDPLAY lives at `$6000` (`sidpl.o` is `$1C00` bytes, then Mode 7 at `$7C00`). Anything that ends at or above `$6000` overwrites the player.
+
+| Player | Load | Max `.bbcsid` |
+|--------|------|----------------|
+| SIDPLAY (BBC) | `$6000` | `$4608` / 17 928 bytes |
+| SIDPELK (Electron) | `$4800` | `$2E08` / 11 784 bytes |
+
+`./create convert` **fails** if the rip is over the SIDPLAY budget. `./create ssd` / the Disc Creator **skips** that tune, logs a warning, and packs the rest (`--sidpelk` uses the tighter Electron ceiling). If every tune is over, pack fails. Helpers: `src.create/src/lib/tuneRam.js`.
 
 ### Relocation parameters
 

@@ -10,15 +10,25 @@ import { ripStage } from "./rip.js";
 import { sha256Hex } from "../lib/patchRegistry.js";
 import { parsePsid } from "../lib/psid.js";
 import { titleFromStem } from "../lib/menu.js";
+import {
+  SIDPLAY_LOAD,
+  bbcSidMaxBytes,
+  describeTuneRam,
+  formatTuneRam,
+} from "../lib/tuneRam.js";
 
 /**
  * @param {object} [opts]
  * @param {true|string|false} [opts.patch=true] default patch policy for all tunes
  * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
+ * @param {"fail"|"skip"} [opts.tooLarge="fail"] overflow vs SIDPLAY/SIDPELK
+ * @param {number} [opts.playerLoad] default SIDPLAY $6000
  */
 export function convertTunesStage(opts = {}) {
   const defaultPatch = opts.patch === undefined ? true : opts.patch;
   const reloc = opts.reloc;
+  const tooLarge = opts.tooLarge === "skip" ? "skip" : "fail";
+  const playerLoad = opts.playerLoad ?? SIDPLAY_LOAD;
 
   return {
     name: "convert-tunes",
@@ -60,6 +70,17 @@ export function convertTunesStage(opts = {}) {
           ctx.log.push(`    ${line}`);
         }
 
+        const ram = describeTuneRam(one.bbcSid, playerLoad);
+        if (ram.over) {
+          const msg = formatTuneRam(baseName, one.bbcSid, playerLoad);
+          if (tooLarge === "skip") {
+            ctx.log.push(`    warning: skipped — ${msg}`);
+            continue;
+          }
+          throw new Error(msg);
+        }
+        ctx.log.push(`    ${formatTuneRam(baseName, one.bbcSid, playerLoad)}`);
+
         // Default menu title: stem with _ → space (not the PSID title),
         // so packed SSDs stay byte-stable.
         let title = input.title;
@@ -84,6 +105,14 @@ export function convertTunesStage(opts = {}) {
           meta: one.meta,
           dfsName: input.dfsName,
         });
+      }
+
+      if (tooLarge === "skip" && tunes.length === 0) {
+        const max = bbcSidMaxBytes(playerLoad);
+        throw new Error(
+          `No tunes fit under the player at $${playerLoad.toString(16)} ` +
+            `(max ${max}-byte .bbcsid from $19f8).`,
+        );
       }
 
       return {
