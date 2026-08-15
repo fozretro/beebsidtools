@@ -11,7 +11,8 @@
     "sync:jsbeeb": "node scripts/sync-jsbeeb-roms.js",
     "sync": "npm run sync:player && npm run sync:jsbeeb",
     "predev": "npm run sync",
-    "prebuild": "npm run sync"
+    "prebuild": "npm run sync",
+    "test": "node --test test/**/*.test.js"
   },
   "dependencies": {
     "beebsidtools-src-create": "file:../src.create",

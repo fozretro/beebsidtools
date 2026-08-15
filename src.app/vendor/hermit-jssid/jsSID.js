@@ -18,6 +18,7 @@ function jsSID(bufferlen, background_noise)
  this.year = '2016';
 
  //create Web Audio context and scriptNode at jsSID object initialization (at the moment only mono output)
+ // BeebSID: expose graph so HVSC can attach an AnalyserNode (visualizer).
  if (typeof AudioContext !== 'undefined') {
  var jsSID_audioCtx = new AudioContext();
  }
@@ -31,6 +32,8 @@ function jsSID(bufferlen, background_noise)
  else {
  var jsSID_scriptNode = jsSID_audioCtx.createScriptProcessor(bufferlen, 0, 1);
  }
+ this.audioCtx = jsSID_audioCtx;
+ this.scriptNode = jsSID_scriptNode;
 
  jsSID_scriptNode.onaudioprocess = function(e) {
  //scriptNode will be replaced by AudioWorker in new browsers sooner or later

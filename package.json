@@ -9,7 +9,8 @@
   },
   "scripts": {
     "create": "node src.create/src/cli.js",
-    "test": "npm test --prefix src.create && npm test --prefix src.player",
+    "test": "npm test --prefix src.create && npm test --prefix src.player && npm test --prefix src.app",
+    "test:app": "npm test --prefix src.app",
     "test:fast": "npm run test:fast --prefix src.create && npm run test:fast --prefix src.player",
     "test:create": "npm test --prefix src.create",
     "test:player": "npm test --prefix src.player",
