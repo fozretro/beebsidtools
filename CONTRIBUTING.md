@@ -109,7 +109,8 @@ npm run dev:app          # http://localhost:5173
 
 CLI is the filesystem edge. Stages take buffers in / out. SSD create injects
 headless jsbeeb via `createSsd({ preview })` (`menu.png`; WAVs with
-`--record-audio`).
+`--record-audio`). `createSsd` skips a tune that fails convert (including
+unpatched RSID) and packs the rest; `convertSid` / `convertSids` still throw.
 
 ```js
 import { createSsd } from "beebsidtools-src-create";

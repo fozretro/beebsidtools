@@ -81,7 +81,7 @@ pre-patch → relocate → post-patch → rip
 
 A hash-selected patch may run **before** relocate (mutate the original SID; may set `relocOpts`) or **after** (mutate the relocated SID). `--no-patch` skips both but still relocates and rips. Relocate writes `.rel.sid`, `.brk`, and `.err`. Rip writes `.bbcsid` and `.vars`. `.patched.sid` appears only when a patch actually ran.
 
-`./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--record-audio`).
+`./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--record-audio`). A tune that fails relocate, rip, or the RAM budget is **skipped** (warning in the log) and the disc still packs. Unpatched **RSID** files are skipped the same way (`RSID — needs a manual patch`); a hash patch (RoboCop) is required before SIDPLAY can call play. `./create convert` still **fails** on the first bad tune. If every tune is skipped, pack fails.
 
 | File | From | Use by | Contents |
 |------|------|--------|----------|
@@ -126,7 +126,7 @@ A `.bbcsid` `*LOAD`s at `$19F8`. SIDPLAY lives at `$6000` (`sidpl.o` is `$1C00` 
 | SIDPLAY (BBC) | `$6000` | `$4608` / 17 928 bytes |
 | SIDPELK (Electron) | `$4800` | `$2E08` / 11 784 bytes |
 
-`./create convert` **fails** if the rip is over the SIDPLAY budget. `./create ssd` / the Disc Creator **skips** that tune, logs a warning, and packs the rest (`--sidpelk` uses the tighter Electron ceiling). If every tune is over, pack fails. Helpers: `src.create/src/lib/tuneRam.js`.
+`./create convert` **fails** if the rip is over the SIDPLAY budget. `./create ssd` / the Disc Creator treat that like any other convert failure: skip, warn, pack the rest (`--sidpelk` uses the tighter Electron ceiling). If every tune is skipped, pack fails. Helpers: `src.create/src/lib/tuneRam.js`.
 
 ### Relocation parameters
 

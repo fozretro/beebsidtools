@@ -27,6 +27,7 @@ export {
   formatTuneRam,
   assertTuneFitsRam,
 } from "./lib/tuneRam.js";
+export { rsidNeedsManualPatch, rsidManualPatchMessage } from "./lib/rsid.js";
 export {
   buildMenu,
   buildBoot,
@@ -63,6 +64,7 @@ import { convertTunesStage } from "./stages/convertTunes.js";
 import { packSsdStage } from "./stages/ssd.js";
 import { sha256Hex } from "./lib/patchRegistry.js";
 import { SIDPELK_LOAD, SIDPLAY_LOAD, assertTuneFitsRam } from "./lib/tuneRam.js";
+import { rsidNeedsManualPatch } from "./lib/rsid.js";
 
 /**
  * @param {Buffer|Uint8Array|{sid:Buffer|Uint8Array,baseName?:string,title?:string,patch?:true|string|false,dfsName?:string}|Array} inputs
@@ -100,6 +102,11 @@ export function normalizeSidInputs(inputs) {
 export async function convertSid(inputSid, opts = {}) {
   const baseName = opts.baseName ?? "tune";
   const buf = Buffer.from(inputSid);
+  const rsidMsg = rsidNeedsManualPatch(buf, {
+    name: baseName,
+    patch: opts.patch ?? true,
+  });
+  if (rsidMsg) throw new Error(rsidMsg);
   const ctx = await runPipeline(
     [
       prePatchStage({ patch: opts.patch ?? true }),
@@ -140,7 +147,7 @@ export async function convertSids(inputs, opts = {}) {
       convertTunesStage({
         patch: opts.patch ?? true,
         reloc: opts.reloc,
-        tooLarge: "fail",
+        onError: "fail",
       }),
     ],
     createContext({ inputs: normalizeSidInputs(inputs) }),
@@ -150,6 +157,8 @@ export async function convertSids(inputs, opts = {}) {
 
 /**
  * Convert one or more SIDs and pack a bootable BeebSID SSD.
+ * Per-tune convert failures (reloc, rip, RAM) are skipped; pack fails
+ * only if nothing remains.
  *
  * @param {Parameters<typeof normalizeSidInputs>[0]} inputs
  * @param {object} opts
@@ -178,7 +187,7 @@ export async function createSsd(inputs, opts = {}) {
     convertTunesStage({
       patch: opts.patch ?? true,
       reloc: opts.reloc,
-      tooLarge: "skip",
+      onError: "skip",
       playerLoad: opts.includeSidpelk ? SIDPELK_LOAD : SIDPLAY_LOAD,
     }),
     packSsdStage({

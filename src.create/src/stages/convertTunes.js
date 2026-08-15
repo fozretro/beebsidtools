@@ -9,25 +9,33 @@ import { prePatchStage, postPatchStage } from "./patch.js";
 import { ripStage } from "./rip.js";
 import { sha256Hex } from "../lib/patchRegistry.js";
 import { parsePsid } from "../lib/psid.js";
+import { rsidNeedsManualPatch } from "../lib/rsid.js";
 import { titleFromStem } from "../lib/menu.js";
 import {
   SIDPLAY_LOAD,
-  bbcSidMaxBytes,
   describeTuneRam,
   formatTuneRam,
 } from "../lib/tuneRam.js";
+
+function logSkipped(ctx, message) {
+  const lines = String(message).split("\n");
+  ctx.log.push(`    warning: skipped — ${lines[0]}`);
+  for (const line of lines.slice(1)) {
+    ctx.log.push(`    ${line}`);
+  }
+}
 
 /**
  * @param {object} [opts]
  * @param {true|string|false} [opts.patch=true] default patch policy for all tunes
  * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
- * @param {"fail"|"skip"} [opts.tooLarge="fail"] overflow vs SIDPLAY/SIDPELK
+ * @param {"fail"|"skip"} [opts.onError="fail"] reloc / rip / RAM overflow
  * @param {number} [opts.playerLoad] default SIDPLAY $6000
  */
 export function convertTunesStage(opts = {}) {
   const defaultPatch = opts.patch === undefined ? true : opts.patch;
   const reloc = opts.reloc;
-  const tooLarge = opts.tooLarge === "skip" ? "skip" : "fail";
+  const onError = opts.onError === "skip" ? "skip" : "fail";
   const playerLoad = opts.playerLoad ?? SIDPLAY_LOAD;
 
   return {
@@ -47,71 +55,76 @@ export function convertTunesStage(opts = {}) {
 
         ctx.log.push(`  [${i + 1}/${inputs.length}] ${baseName}`);
 
-        let one = await runPipeline(
-          [
-            prePatchStage({ patch }),
-            relocateStage({ reloc }),
-            postPatchStage({ patch }),
-            ripStage(),
-          ],
-          createContext({
+        try {
+          const rsidMsg = rsidNeedsManualPatch(inputSid, { name: baseName, patch });
+          if (rsidMsg) throw new Error(rsidMsg);
+
+          let one = await runPipeline(
+            [
+              prePatchStage({ patch }),
+              relocateStage({ reloc }),
+              postPatchStage({ patch }),
+              ripStage(),
+            ],
+            createContext({
+              baseName,
+              inputSid,
+              meta: { inputSha256: sha256Hex(inputSid) },
+            }),
+          );
+
+          const preApplied = one.log.some((l) => l.includes("pre-patch:"));
+          const postApplied = one.log.some((l) => l.includes("post-patch:"));
+          for (const line of one.log) {
+            if (line === "✓ done") continue;
+            if (line === "→ pre-patch" && !preApplied) continue;
+            if (line === "→ post-patch" && !postApplied) continue;
+            ctx.log.push(`    ${line}`);
+          }
+
+          const ram = describeTuneRam(one.bbcSid, playerLoad);
+          if (ram.over) {
+            throw new Error(formatTuneRam(baseName, one.bbcSid, playerLoad));
+          }
+          ctx.log.push(`    ${formatTuneRam(baseName, one.bbcSid, playerLoad)}`);
+
+          // Default menu title: stem with _ → space (not the PSID title),
+          // so packed SSDs stay byte-stable.
+          let title = input.title;
+          if (!title) title = titleFromStem(baseName);
+          if (!title) {
+            try {
+              title = parsePsid(inputSid).title;
+            } catch {
+              title = baseName;
+            }
+          }
+
+          tunes.push({
             baseName,
-            inputSid,
-            meta: { inputSha256: sha256Hex(inputSid) },
-          }),
-        );
-
-        const preApplied = one.log.some((l) => l.includes("pre-patch:"));
-        const postApplied = one.log.some((l) => l.includes("post-patch:"));
-        for (const line of one.log) {
-          if (line === "✓ done") continue;
-          if (line === "→ pre-patch" && !preApplied) continue;
-          if (line === "→ post-patch" && !postApplied) continue;
-          ctx.log.push(`    ${line}`);
-        }
-
-        const ram = describeTuneRam(one.bbcSid, playerLoad);
-        if (ram.over) {
-          const msg = formatTuneRam(baseName, one.bbcSid, playerLoad);
-          if (tooLarge === "skip") {
-            ctx.log.push(`    warning: skipped — ${msg}`);
+            title,
+            bbcSid: one.bbcSid,
+            relSid: one.relSid,
+            brkText: one.brkText,
+            relocErr: one.relocErr,
+            patchedSid: one.patchedSid,
+            vars: one.vars,
+            meta: one.meta,
+            dfsName: input.dfsName,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (onError === "skip") {
+            logSkipped(ctx, msg);
             continue;
           }
-          throw new Error(msg);
+          throw err;
         }
-        ctx.log.push(`    ${formatTuneRam(baseName, one.bbcSid, playerLoad)}`);
-
-        // Default menu title: stem with _ → space (not the PSID title),
-        // so packed SSDs stay byte-stable.
-        let title = input.title;
-        if (!title) title = titleFromStem(baseName);
-        if (!title) {
-          try {
-            title = parsePsid(inputSid).title;
-          } catch {
-            title = baseName;
-          }
-        }
-
-        tunes.push({
-          baseName,
-          title,
-          bbcSid: one.bbcSid,
-          relSid: one.relSid,
-          brkText: one.brkText,
-          relocErr: one.relocErr,
-          patchedSid: one.patchedSid,
-          vars: one.vars,
-          meta: one.meta,
-          dfsName: input.dfsName,
-        });
       }
 
-      if (tooLarge === "skip" && tunes.length === 0) {
-        const max = bbcSidMaxBytes(playerLoad);
+      if (onError === "skip" && tunes.length === 0) {
         throw new Error(
-          `No tunes fit under the player at $${playerLoad.toString(16)} ` +
-            `(max ${max}-byte .bbcsid from $19f8).`,
+          `No tunes converted — all ${inputs.length} failed or were skipped.`,
         );
       }
 

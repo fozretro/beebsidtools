@@ -49,7 +49,8 @@ function usage(code = 1) {
   Relocate defaults are page $1A, SID $FC20, --force, --keep-zp (BeebSID /
   SIDPLAY). Override on convert to experiment; a different page or SID dest
   will not play in the bundled player.
-  SSD create runs headless preview via createSsd({ preview }) → menu.png
+  SSD create skips a tune that fails convert (reloc, size, unpatched RSID)
+  and packs the rest. Headless preview via createSsd({ preview }) → menu.png
   (skip with --no-preview). --record-audio adds ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune.
 `);
   process.exit(code);
