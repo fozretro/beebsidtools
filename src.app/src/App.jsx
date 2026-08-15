@@ -6,6 +6,7 @@ import {
   previewSsdStage,
 } from "beebsidtools-src-create/preview/browser";
 import LivePreviewModal from "./LivePreviewModal.jsx";
+import { publicUrl } from "./publicUrl.js";
 import {
   APP_VERSION,
   CREATE_VERSION,
@@ -79,10 +80,10 @@ async function fetchAsset(path) {
 }
 
 async function loadCreateAssets() {
-  const sidplay = await fetchAsset("/player/sidpl.o");
+  const sidplay = await fetchAsset(publicUrl("player/sidpl.o"));
   let hex;
   try {
-    hex = await fetchAsset("/player/hexdigs.bin");
+    hex = await fetchAsset(publicUrl("player/hexdigs.bin"));
   } catch {
     /* optional */
   }
@@ -254,7 +255,7 @@ export default function App() {
           stage: previewSsdStage({
             audio: true,
             secondsPerTune: UI_SECONDS_PER_TUNE,
-            romBaseUrl: "/jsbeeb/",
+            romBaseUrl: publicUrl("jsbeeb/"),
           }),
         },
         onLog: appendLog,

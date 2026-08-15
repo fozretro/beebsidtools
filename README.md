@@ -30,13 +30,15 @@ two launchers — the first run installs the rest automatically.
 
 ### Disc Creator (browser)
 
+Hosted on GitHub Pages: <https://fozretro.github.io/beebsidtools/>
+
 ```bash
 ./app
 ./app --clean          # wipe installs/dist, then first-run bootstrap
 ```
 
 Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`.
-First run may take a minute.
+First run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
 
 Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits, **f0** Help.
 

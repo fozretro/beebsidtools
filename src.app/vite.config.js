@@ -8,6 +8,8 @@ const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Local `./app` stays at `/`. GitHub Pages sets BASE_PATH=/beebsidtools/
+  base: process.env.BASE_PATH || "/",
   plugins: [react()],
   resolve: {
     alias: {

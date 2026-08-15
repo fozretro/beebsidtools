@@ -9,6 +9,9 @@ CLI uses `preview/node` (`MachineSession` + `sharp`).
 ./app
 ```
 
+GitHub Pages (from `main`): <https://fozretro.github.io/beebsidtools/>
+(`BASE_PATH=/beebsidtools/` in `.github/workflows/pages.yml`).
+
 ## Status
 
 - [x] Drag-drop / multi SID → SSD (in-browser)

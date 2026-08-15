@@ -14,8 +14,18 @@ import { setBaseUrl } from "jsbeeb/src/utils.js";
 const FB_WIDTH = 1024;
 const FB_HEIGHT = 625;
 
-/** Default where sync:jsbeeb-roms copies B-DFS assets */
-export const DEFAULT_ROM_BASE = "/jsbeeb/";
+/** Default where sync:jsbeeb-roms copies B-DFS assets (honours Vite `base`). */
+function vitePublicBase() {
+  try {
+    const b = import.meta.env?.BASE_URL;
+    if (typeof b === "string" && b) return b.endsWith("/") ? b : `${b}/`;
+  } catch {
+    /* Node / non-Vite */
+  }
+  return "/";
+}
+
+export const DEFAULT_ROM_BASE = `${vitePublicBase()}jsbeeb/`;
 
 /**
  * @param {Uint8Array} rgba
