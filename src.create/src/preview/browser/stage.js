@@ -1,6 +1,12 @@
 /**
  * Browser turbo preview pipeline stage.
+ *
+ * Static import (not `import()`) so Vite does not emit a separate capture-*.js
+ * chunk. A hashed extra file 404s on GitHub Pages when a tab still runs an
+ * older main bundle after a deploy.
  */
+
+import { captureSsdPreview, UI_SECONDS_PER_TUNE } from "./capture.js";
 
 /**
  * @param {object} [opts]
@@ -20,9 +26,6 @@ export function previewSsdStage(opts = {}) {
     async run(ctx) {
       if (!ctx.ssd?.length) throw new Error("preview-ssd: ctx.ssd required");
 
-      const { captureSsdPreview, UI_SECONDS_PER_TUNE } = await import(
-        "./capture.js"
-      );
       const secs = secondsPerTune ?? UI_SECONDS_PER_TUNE;
       const capture = captureFn ?? captureSsdPreview;
 
