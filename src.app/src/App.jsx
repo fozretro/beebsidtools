@@ -6,6 +6,7 @@ import {
   previewSsdStage,
 } from "beebsidtools-src-create/preview/browser";
 import LivePreviewModal from "./LivePreviewModal.jsx";
+import HvscBrowser from "./HvscBrowser.jsx";
 import { publicUrl } from "./publicUrl.js";
 import { TOOLS_VERSION } from "./versions.js";
 import { formatReleaseNotes } from "./releaseNotes.js";
@@ -31,7 +32,8 @@ const HELP_TEXT = [
     ["f9 Credits", "f0 Help"],
   ]),
   "",
-  "Drop .sid files or use Choose files, then Create Disc.",
+  "Drop .sid files, Choose files, or HVSC to browse a local collection.",
+  "HVSC index is stored in this browser. Play listens with Hermit jsSID.",
   "",
   `BeebSID Tools v${TOOLS_VERSION}`,
   "",
@@ -49,6 +51,7 @@ const CREDITS_TEXT = [
   "Andrew Fawcett - !FOZ!  sidreloc JavaScript port",
   "Matt Godbolt            jsbeeb",
   "jhohertz                jsSID FastSID",
+  "Mihaly Horvath (Hermit) jsSID C64 SID player",
   "Ben Harris              Bedstead (MODE 7 font)",
   "Ian Piumarta            6502 CPU core (sidreloc)",
   "Stardot / BeebAsm       BBC assembler toolchain",
@@ -112,6 +115,7 @@ export default function App() {
   const [dragOver, setDragOver] = useState(false);
   const [liveOpen, setLiveOpen] = useState(false);
   const [liveAudioCtx, setLiveAudioCtx] = useState(null);
+  const [hvscOpen, setHvscOpen] = useState(false);
   const logRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -441,6 +445,15 @@ export default function App() {
                 />
               </label>
               or drop <code>.sid</code> files here
+              {" · "}
+              <button
+                type="button"
+                className="file-btn"
+                disabled={busy}
+                onClick={() => setHvscOpen(true)}
+              >
+                HVSC
+              </button>
             </p>
             <div className="file-listing mode7" role="listbox" aria-label="SID files">
               <div className="file-listing__prompt">&gt; *DOWNLOADS</div>
@@ -530,6 +543,12 @@ export default function App() {
         ssd={result?.ssd ?? null}
         audioCtx={liveAudioCtx}
         onClose={onCloseLive}
+      />
+      <HvscBrowser
+        open={hvscOpen}
+        onClose={() => setHvscOpen(false)}
+        onAddFiles={onFiles}
+        onLog={(line) => setLog((prev) => (prev ? `${prev}\n${line}` : line))}
       />
     </div>
   );
