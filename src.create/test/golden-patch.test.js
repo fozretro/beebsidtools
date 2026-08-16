@@ -15,10 +15,15 @@ import {
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN = join(HERE, "golden");
 
-test("patch registry loads head-over-heels, robocop, robocop-3", () => {
+test("patch registry loads golden-axe, head-over-heels, robocop, robocop-3", () => {
   const patches = getPatches();
   const ids = patches.map((p) => p.id).sort();
-  assert.deepEqual(ids, ["head-over-heels", "robocop", "robocop-3"]);
+  assert.deepEqual(ids, [
+    "golden-axe",
+    "head-over-heels",
+    "robocop",
+    "robocop-3",
+  ]);
 });
 
 test("robocop pre-patch sets play=$254f", () => {
@@ -52,6 +57,25 @@ test("patch auto-select by original SID hash: Head Over Heels", async () => {
     phase: "post",
   });
   assert.equal(selected.id, "head-over-heels");
+
+  const { patchedSid } = selected.patch(readFileSync(rel));
+  assert.ok(Buffer.from(patchedSid).equals(readFileSync(golden)));
+});
+
+test("patch auto-select by original SID hash: Golden Axe", async () => {
+  const orig = join(GOLDEN, "Golden_Axe.sid");
+  const rel = join(GOLDEN, "Golden_Axe.rel.sid");
+  const golden = join(GOLDEN, "Golden_Axe.patched.sid");
+  assert.ok(existsSync(orig) && existsSync(rel) && existsSync(golden));
+
+  const patches = getPatches();
+  const selected = resolvePatch({
+    patches,
+    patchFlag: true,
+    inputSha256: sha256Hex(readFileSync(orig)),
+    phase: "post",
+  });
+  assert.equal(selected.id, "golden-axe");
 
   const { patchedSid } = selected.patch(readFileSync(rel));
   assert.ok(Buffer.from(patchedSid).equals(readFileSync(golden)));

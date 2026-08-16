@@ -7,6 +7,7 @@ Lean set for create tests (self-contained; no `archive/` dependency).
 | `Head_Over_Heels.sid` + `.rel.sid` / `.brk` / `.reloc.exit` / `.patched.sid` / `.bbcsid` | Post-patch, reloc, rip |
 | `RoboCop.sid` / `.bbcsid` / `.reloc.exit` | RSID pre-patch; raw reloc fails (exit committed) |
 | `RoboCop_3.sid` + `.rel.sid` / `.brk` / `.reloc.exit` / `.patched.sid` / `.bbcsid` | Post-patch on relocated hash |
+| `Golden_Axe.sid` + `.rel.sid` / `.brk` / `.reloc.exit` / `.patched.sid` | Post-patch (under-ROM work RAM → `$4000`) |
 | `Cybernoid.sid` + `.rel.sid` / `.brk` / `.reloc.exit` / `.bbcsid` | No-patch PSID |
 | `tunes.ssd` | Pack-only golden (all four `.bbcsid` + current `sidpl.o`) |
 | `Head_Over_Heels.10s.wav` | jsbeeb + FastSID recording (RETURN on first menu tune, 10s) |
