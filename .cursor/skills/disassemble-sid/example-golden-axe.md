@@ -2,12 +2,12 @@
 
 One packed HVSC player. **Do not reuse these addresses on another SID.**
 
-Committed replica: `src.goldenaxe/` (BeebAsm only). Re-probe with the skill
+Committed replica: `src.sids/goldenaxe/` (BeebAsm only). Re-probe with the skill
 scripts if you need traces again:
 
 ```bash
 node .cursor/skills/disassemble-sid/scripts/probe.mjs \
-  --sid src.goldenaxe/original/Golden_Axe.sid --out .tmp/goldenaxe/dis
+  --sid src.sids/goldenaxe/original/Golden_Axe.sid --out .tmp/goldenaxe/dis
 ```
 
 ## What the probe found

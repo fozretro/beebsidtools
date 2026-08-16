@@ -29,11 +29,13 @@ write trace.json + bins
 ```
 
 **Copy discovery (if any):** after play, match each RAM page’s first 16 bytes
-against the payload. Group pages that share the same `dest − src` delta
-(one relocated image). Pick the cluster with the most play PCs. Do not treat
-“payload still at loadaddr” as in-place play — that is true of every PSID.
-Workspace in the copy diverges, so do not stop the image at the first
-mismatch. If play PCs stay in the load range, `dest = src = loadaddr`.
+against the payload. Group pages that share the same `dest − src` delta.
+Then walk **backward** a page when the file still looks like a JMP table
+(`$4C … $4C`) and the probe JSR/JMP’d that page — workspace often dirties
+the first 16 RAM bytes so the prefix scan misses the vector page. Deprioritize
+delta-0 leftover payload still sitting at the load image. Pick the cluster
+with the most play PCs. If play stays in the load range, `dest = src = loadaddr`.
+Remap exec bits after the window is final.
 
 Map `pc` → file address only after that window is known:
 
@@ -70,9 +72,10 @@ image at `copy.src` for `copy.size` bytes, or the whole payload).
 
 ## `known.symbols` → first ENTRYs
 
-Hand file. Evidence comments from **this** probe. Typical first names are
-whatever the PSID header and the JMP table actually are, e.g. init/play at
-header addresses, or `$org+0` / `$org+3` if this image uses that convention.
+Hand file. Evidence comments from **this** probe. Name init/play where the
+probe actually JSRs (header trampoline and/or copied `$org+0` / `$org+3`).
+Do not invent `$org+6` stop. If those addresses are **below** `LOAD`, the
+copy window is short — fix `probe.mjs` / `trace.copy`, do not EQU them away.
 
 ## `from-traces.mjs` → `player.ctl`
 
@@ -97,3 +100,4 @@ JMP table needs a 1-byte `BYTE` or BeebDis consumes the next opcode.
 |--------|-----|
 | Hook, seconds, subtune, copy search | `probe.mjs` then `from-traces.mjs` |
 | `known.symbols` or walk/ctl generator | `from-traces.mjs` only |
+| Player window complete + SID `cmp` green | Promote to `src.sids/<tune>/` (see SKILL.md). Do not commit `.tmp`. |

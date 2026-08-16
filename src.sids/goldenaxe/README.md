@@ -1,4 +1,4 @@
-# src.goldenaxe — Golden Axe SID replica (BeebAsm)
+# goldenaxe — Golden Axe SID replica (BeebAsm)
 
 Byte-identical rebuild of HVSC `Golden_Axe.sid` (Jeroen Tel). The 4K player
 is listed at its runtime address `$9000`; a short stub and the remaining
@@ -18,7 +18,7 @@ out/                      build products (gitignored)
 
 ```bash
 # from repo root, or from this directory
-BEEBASM=/path/to/beebasm src.goldenaxe/bin/build.sh
+BEEBASM=/path/to/beebasm src.sids/goldenaxe/bin/build.sh
 ```
 
 `beebasm` must be on `PATH`, or set `BEEBASM`. Success prints two `OK` lines:

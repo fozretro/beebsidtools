@@ -5,6 +5,15 @@
 - Many SIDs **run at the load address**. Others **copy** a player under I/O or
   BASIC. A third group relocates in place. Do not start from another tune’s
   dest or a fixed 4K size.
+- A copied JMP table page often **fails a 16-byte RAM match** after init
+  (workspace writes). Still include it if the file bytes are `JMP`/`JMP` and
+  the probe called `$dest` / `$dest+3`. Otherwise BeebDis starts mid-instruction
+  and `from-traces` will WARN that flow targets sit below `LOAD`.
+- **Green SID ≠ complete listing.** Stub + truncated player + tail can
+  reassemble the original file while omitting the vector page. Check that
+  the hottest JSR is inside the window.
+- Payload still mapped at the load address (or the next page, same delta)
+  is leftover file data, not “in-place play,” unless play PCs stay there.
 - One file can contain **several** packed images (later subtunes). Start with
   the image song 0 actually copies or runs. Leftover `JMP`s into another page
   at the end of a blob are often the *next* image, not this song’s code.

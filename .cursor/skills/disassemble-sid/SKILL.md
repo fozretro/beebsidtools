@@ -2,17 +2,19 @@
 name: disassemble-sid
 description: >-
   Disassemble a C64 PSID/RSID by embedding CPU telemetry in Hermit jsSID,
-  turning traces into a BeebDis control file, and BeebAsm-round-tripping a
-  byte-identical .sid. Use when reverse-engineering any SID for BeebSID,
-  writing probe.mjs / from-traces.mjs, growing a src.* replica, or emitting
-  a .bbcsid from a listing.
+  turning traces into a BeebDis control file, and promoting a clean
+  src.sids/<tune>/ BeebAsm replica (like src.sids/goldenaxe). Use when
+  reverse-engineering any SID for BeebSID, writing probe.mjs /
+  from-traces.mjs, or emitting a .bbcsid from a listing.
 ---
 
 # Disassemble a SID (telemetry → BeebDis → BeebAsm)
 
-Goal: a **byte-identical** `.sid` from BeebAsm, then change maps / I/O in source
-(later: `.bbcsid` via conditionals). Discover this tune’s layout from the probe.
-Do not assume another SID’s org, copy dest, or image size.
+Goal: a **clean `src.sids/<tune>/` tree** that BeebAsm-rebuilds a byte-identical
+`.sid` (shape: [`src.sids/goldenaxe/`](../../../src.sids/goldenaxe/)). Probe/ctl/trace
+files stay in `.tmp/<tune>/dis/` and are **not** the deliverable. After that,
+change maps / I/O in the clean source (later: `.bbcsid` via conditionals).
+Discover this tune’s layout from the probe — do not copy another SID’s org.
 
 Scripts (copy or run in place — do not reconstruct from `.tmp`):
 
@@ -31,13 +33,13 @@ node .cursor/skills/disassemble-sid/scripts/from-traces.mjs \
   --out .tmp/<tune>/dis --sid path/to/tune.sid
 ```
 
-`--out` is the work dir (gitignored `.tmp/<tune>/dis/` is fine). Org and image
-size come from `trace.copy`, not from another SID. BeebDis / BeebAsm: `PATH`
-or `BEEBDIS=` / `BEEBASM=`.
+`--out` is **scratch** (gitignored `.tmp/<tune>/dis/`). Org and image size
+come from `trace.copy`. BeebDis / BeebAsm: `PATH` or `BEEBDIS=` / `BEEBASM=`.
+When the player window is complete and `cmp` is green, **promote** into
+`src.sids/<tune>/` (see below). Do not commit the scratch dir.
 
-One committed replica (packed, copied player): [`src.goldenaxe/`](../../../src.goldenaxe/).
-Example only. Inject details: [telemetry.md](telemetry.md). Pitfalls:
-[pitfalls.md](pitfalls.md). That one tune: [example-golden-axe.md](example-golden-axe.md).
+Inject details: [telemetry.md](telemetry.md). Pitfalls: [pitfalls.md](pitfalls.md).
+One tune’s map: [example-golden-axe.md](example-golden-axe.md).
 
 ## 1. Embed telemetry in Hermit
 
@@ -66,9 +68,14 @@ image was **copied** to a new address.
 | Init copies a slice to another page, then play runs there | `copy.dest` | `payload[copy.src - loadaddr : + measured size]` |
 
 Do not start from `$9000` or a 4K window unless this tune’s RAM dump says so.
-Find a copy by matching payload bytes in RAM after init (scan, don’t only
-try three dests). Measure image length from the match / exec span, not a
-constant.
+Scan RAM pages; cluster by `dest − src`; then walk **back** a page if the
+file is still a JMP table and the probe called that page (workspace often
+dirties the first 16 RAM bytes). Leftover payload still at the load image
+is not a copy. Remap exec bits after the window is final.
+
+**Check the window before trusting a green SID.** Hottest `trace.jsr` must
+land in `[copy.dest, copy.dest+size)`. If init/play JSRs sit in the page
+*below* `LOAD`, the blob starts mid-instruction — `cmp` can still pass.
 
 Write `trace.json`, `header.bin`, `payload.bin`, the player blob, and a RAM
 dump of the window play actually used.
@@ -85,8 +92,8 @@ copied image at the PSID load address will mis-decode branches.
    PSID header addresses, plus any JMP table the dump shows)
 2. `trace.jsr` / `trace.jmp` that land in the player window
 
-A `+0` / `+3` / `+6` JMP table (init / play / stop) is common on packed
-players and **not** universal. Name what this dump has.
+A `+0` / `+3` JMP pair (init / play) is common on packed players and **not**
+universal. `+6` is often workspace, not stop. Name only what this dump has.
 
 **Do not** emit `BYTE` from exec bits alone. Code that this subtune / this
 many seconds never reached is still code. BYTE-on-never-exec splits
@@ -119,7 +126,8 @@ blob. Rebuild the SID:
 data). `cmp` the full `.sid`.
 
 INCBIN of the raw player blob is an allowed first green SID while the
-listing is still broken.
+listing is still broken. **Green `cmp` of a truncated window is not done** —
+fix `copy.dest` / `copy.size` first.
 
 ## Hard rules
 
@@ -129,6 +137,9 @@ listing is still broken.
 4. BYTE from the 6502 walk, not from “never executed”.
 5. Do not harvest every BeebDis `Lxxxx` as ENTRY.
 6. Rebuild PSID with the load word if `loadaddr === 0`.
+7. Do not treat a matching `.sid` as a complete player if JSR targets
+   fall outside the `LOAD` window.
+8. The committed output is `src.sids/<tune>/`, not `.tmp/<tune>/dis/`.
 
 ## Incremental ladder
 
@@ -141,13 +152,39 @@ After each layer: regenerate and stay green.
 | 3 | JSR/JMP + `known.symbols` | first `ENTRY`s |
 | 4 | 6502 walk | more `ENTRY`s + `BYTE` holes |
 | 5 | Name tables from *this* listing’s uses | symbols only |
-| 6 | Promote | `src.<tune>/` + `build.sh` cmp |
+| 6 | Promote | clean `src.sids/<tune>/` + `bin/build.sh` cmp |
 | 7 | (later) conditionals | `.bbcsid` (BeebSID I/O, load map) |
 
-Once the listing is green, edit source. Do not pile reloc heuristics on a
-tune you can assemble.
+Once the listing is green **and promoted**, edit that source. Do not pile
+reloc heuristics on a tune you can assemble.
 
-## Promote a compile tree
+## 4. Promote a clean `src.sids/<tune>/` (the deliverable)
 
-Copy what BeebAsm needs for **this** SID (whole payload, or stub + player +
-tail). Keep probe + ctl generator in `.tmp/` until you choose to commit them.
+Scratch (`.tmp/<tune>/dis/`) holds the disassembly process: `trace.json`,
+`player.ctl`, `player.symbols`, BeebDis listings, `from-traces` glue, RAM
+dumps. **Leave it there.** The repo output is a new package under
+`src.sids/`, modelled on `src.sids/goldenaxe`:
+
+```text
+src.sids/<tune>/
+  original/<Tune>.sid     HVSC / golden original (compare target)
+  src/player.asm          assemble-ready listing only (SAVE → ../out/player.bin)
+  src/sid.asm             stub + player + tail (or whole payload) → payload
+  src/stub.bin            bytes before the player slice (empty OK)
+  src/tail.bin            bytes after the player slice (empty OK)
+  bin/build.sh            beebasm + PSID wrap + cmp original
+  README.md               how to build this tune
+  .gitignore              out/
+```
+
+**Copy in:** the prepared `player.build.asm` (as `src/player.asm`), `stub.bin`,
+`tail.bin`, a hand-written `sid.asm` / `build.sh` like `src.sids/goldenaxe`, and
+the original `.sid`.
+
+**Do not copy:** `trace.json`, exec bitmaps, `player.ctl`, `*.symbols` except
+what you choose to mention in the README, `player.asm` straight from BeebDis
+(use the assemble-ready file), `probe.mjs`, Hermit dumps, `.lst` files.
+
+`bin/build.sh` must rebuild `out/<Tune>.sid` and `cmp` it to
+`original/<Tune>.sid` with BeebAsm only — no BeebDis, no probe. Until that
+tree exists and is green, the skill is not finished.

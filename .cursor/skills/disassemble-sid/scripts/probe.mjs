@@ -125,13 +125,20 @@ function playHitsIn(playPcs, lo, hi) {
   return n;
 }
 
+function looksLikeJmpTable(payload, off) {
+  return off >= 0 && off + 5 < payload.length && payload[off] === 0x4c && payload[off + 3] === 0x4c;
+}
+
+function flowHitsPage(flow, dest) {
+  return flow.has(dest) || flow.has(dest + 3);
+}
+
 /**
  * PSID data remains at loadaddr after init — that is not "in-place play".
- * Workspace in a copied image diverges, so do not trust growSize alone.
- * Cluster page matches that share the same dest-src delta, then pick the
- * cluster that contains the most play PCs.
+ * Cluster pages that share dest−src. Then walk backward: workspace often
+ * dirties the JMP-table page so the first 16 RAM bytes no longer match.
  */
-function findCopy(mem, payload, loadaddr, playPcs) {
+function findCopy(mem, payload, loadaddr, playPcs, flow) {
   const pages = [];
   for (let dest = 0; dest < 0x10000; dest += 0x100) {
     const slice = mem.subarray(dest, dest + 16);
@@ -151,38 +158,48 @@ function findCopy(mem, payload, loadaddr, playPcs) {
     groups.set(p.delta, g);
   }
 
+  const loadEnd = loadaddr + payload.length;
   const clusters = [];
   for (const [, g] of groups) {
     g.sort((a, b) => a.dest - b.dest);
-    const dest = g[0].dest;
-    const src = g[0].src;
+    let dest = g[0].dest;
+    let src = g[0].src;
     const last = g[g.length - 1].dest + 0x100;
-    const size = Math.min(last - dest, payload.length - (src - loadaddr), 0x10000 - dest);
+    let size = Math.min(last - dest, payload.length - (src - loadaddr), 0x10000 - dest);
+
+    while (dest >= 0x100 && src - loadaddr >= 0x100) {
+      const prevDest = dest - 0x100;
+      const prevOff = src - loadaddr - 0x100;
+      const ramMatch = memEq(mem, prevDest, payload, prevOff, 16);
+      const table = looksLikeJmpTable(payload, prevOff);
+      if (!ramMatch && !(table && flowHitsPage(flow, prevDest))) break;
+      dest = prevDest;
+      src = dest - (g[0].dest - g[0].src);
+      size += 0x100;
+    }
+
     const hits = playHitsIn(playPcs, dest, dest + size);
     const inPlace = dest === loadaddr && src === loadaddr;
+    const leftoverPayload = !inPlace && dest >= loadaddr && dest < loadEnd;
     clusters.push({
       src,
       dest,
       size,
       hits,
+      leftoverPayload,
       match: inPlace ? "in-place" : "ram",
     });
   }
 
-  if (playPcs.length) {
-    clusters.sort((a, b) => {
-      const aP = a.match === "in-place" ? 0 : 1;
-      const bP = b.match === "in-place" ? 0 : 1;
-      return b.hits - a.hits || bP - aP || b.size - a.size;
-    });
-    return clusters[0];
-  }
   clusters.sort((a, b) => {
-    const aP = a.match === "in-place" ? 0 : 1;
-    const bP = b.match === "in-place" ? 0 : 1;
-    return bP - aP || b.size - a.size;
+    if (playPcs.length && a.hits !== b.hits) return b.hits - a.hits;
+    if (a.leftoverPayload !== b.leftoverPayload) return a.leftoverPayload ? 1 : -1;
+    if (a.match !== b.match) return a.match === "in-place" ? 1 : -1;
+    return b.size - a.size;
   });
-  return clusters[0];
+  const best = clusters[0];
+  if (!best) return null;
+  return { src: best.src, dest: best.dest, size: best.size, hits: best.hits, match: best.match };
 }
 
 const sidBytes = readFileSync(resolve(SID_PATH));
@@ -230,13 +247,21 @@ player._setOnCpu((pc, ir) => {
   }
 });
 
+function flowSet() {
+  return new Set([...jsr.keys(), ...jmp.keys()]);
+}
+
 player.loadinit("probe.sid", SUBTUNE);
 afterInit = true;
-copy = findCopy(mem, payload, loadaddr, []);
+copy = findCopy(mem, payload, loadaddr, [], flowSet());
 
 for (let f = 0; f < SECONDS * 50; f++) driveOnePlay(player);
 
-copy = findCopy(mem, payload, loadaddr, playPcs) ?? copy;
+copy = findCopy(mem, payload, loadaddr, playPcs, flowSet()) ?? copy;
+for (const pc of playPcs) {
+  const mapped = fileAddr(pc);
+  if (mapped != null) markFile(mapped);
+}
 
 let execBytes = 0;
 for (let i = 0; i < payload.length; i++) {

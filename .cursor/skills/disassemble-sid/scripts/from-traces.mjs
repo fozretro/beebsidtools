@@ -404,6 +404,27 @@ for (const [addr, name] of named) {
   if (inPlayer(addr)) entries.set(addr, name);
 }
 
+function warnTruncatedWindow() {
+  const below = [];
+  const note = (addr, why) => {
+    if (addr >= PLAYER_ORG - 0x100 && addr < PLAYER_ORG) {
+      below.push(`${hex4(addr)} (${why})`);
+    }
+  };
+  for (const [addr, name] of named) note(addr, name);
+  for (const h of trace.jsr ?? []) note(h.addr, `jsr×${h.count}`);
+  for (const h of trace.jmp ?? []) note(h.addr, `jmp×${h.count}`);
+  if (!below.length) return;
+  console.error(
+    "WARN: flow targets sit in the page below LOAD org — the copy window is probably short.\n" +
+      "      A byte-identical SID can still be a truncated listing (mid-instruction start).\n" +
+      "      " +
+      [...new Set(below)].join(", "),
+  );
+}
+
+warnTruncatedWindow();
+
 function writeSymbols() {
   writeFileSync(
     join(DIS, "sampled.symbols"),
