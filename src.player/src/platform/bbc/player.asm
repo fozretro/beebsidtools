@@ -73,6 +73,8 @@ SYSVIA_DDRB     = $FE42
 SYSVIA_DDRA     = $FE43
 SYSVIA_T1C_L    = $FE44
 SYSVIA_T1C_H    = $FE45
+SYSVIA_T1L_L    = $FE46            ; T1 latch (MOS 100Hz period)
+SYSVIA_T1L_H    = $FE47
 SYSVIA_ACR      = $FE4B
 SYSVIA_IFR      = $FE4D
 SYSVIA_IER      = $FE4E
@@ -83,7 +85,10 @@ NMI_VECTOR      = $D00
 VIA_IER_DISABLE_ALL = $7F
 VIA_IFR_CLEAR_ALL   = $FF
 VIA_IFR_CA1         = $02          ; VSync
+VIA_IFR_T1          = $40
 VIA_IER_SET_MASK    = $80
+; MOS 1.20 System VIA Timer1 (LDA #$0E / LDA #$27 at reset).
+MOS_T1_100HZ        = $270E
 OPCODE_RTI          = $40
 
 ; check_key VIA setup (Gundroid / Retrosoftware pattern)
@@ -244,14 +249,6 @@ KEY_DOWN_MASK   = $80
         EQUB 0
 }
 .save_via_acr
-{
-        EQUB 0
-}
-.save_via_t1lo
-{
-        EQUB 0
-}
-.save_via_t1hi
 {
         EQUB 0
 }
@@ -955,6 +952,8 @@ KEY_DOWN_MASK   = $80
                 sta     BRKV + 1
                 lda     #0
                 sta     mos_parked
+                lda     #VIA_IFR_T1
+                sta     SYSVIA_IFR
                 cli
 .done
         rts
@@ -1055,10 +1054,6 @@ KEY_DOWN_MASK   = $80
                 sta     save_via_ddra
                 lda     SYSVIA_ACR
                 sta     save_via_acr
-                lda     SYSVIA_T1C_L
-                sta     save_via_t1lo
-                lda     SYSVIA_T1C_H
-                sta     save_via_t1hi
                 lda     SYSVIA_IER
                 sta     save_via_ier
 
@@ -1084,9 +1079,12 @@ KEY_DOWN_MASK   = $80
                 sta     SYSVIA_IFR
                 lda     save_via_acr
                 sta     SYSVIA_ACR
-                lda     save_via_t1lo
-                sta     SYSVIA_T1C_L
-                lda     save_via_t1hi
+                ; Do not restore the parked T1 counter as the 100Hz period
+                ; (Gundroid: leftover FE44/45 → IRQ storm, DFS/OSBYTE hang).
+                lda     #LO(MOS_T1_100HZ)
+                sta     SYSVIA_T1L_L
+                lda     #HI(MOS_T1_100HZ)
+                sta     SYSVIA_T1L_H
                 sta     SYSVIA_T1C_H
                 lda     save_via_ddra
                 sta     SYSVIA_DDRA
