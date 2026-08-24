@@ -1,0 +1,9 @@
+; Hand names for THIS tune at the runtime org the probe reported.
+; Evidence comments required. Copy to <out>/known.symbols and edit.
+; After every edit: node from-traces.mjs --out <out>
+;
+; Do not copy another SID's addresses. Some packed players have JMP
+; init/play at $org+0 / $org+3. $org+6 is often workspace, not stop.
+
+; player_init = $????
+; player_play = $????

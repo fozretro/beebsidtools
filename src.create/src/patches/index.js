@@ -2,6 +2,7 @@
  * In-memory patch registry (no filesystem). Web/app code should import this.
  */
 
+import goldenAxe from "./golden-axe.js";
 import headOverHeels from "./head-over-heels.js";
 import robocop from "./robocop.js";
 import robocop3 from "./robocop-3.js";
@@ -20,6 +21,7 @@ function normalize(patch, file) {
 
 /** @type {object[]} */
 export const builtinPatches = [
+  normalize(goldenAxe, "golden-axe.js"),
   normalize(headOverHeels, "head-over-heels.js"),
   normalize(robocop, "robocop.js"),
   normalize(robocop3, "robocop-3.js"),

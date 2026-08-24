@@ -115,10 +115,12 @@ Fixtures: `src.create/test/golden/` and `src.player/test/golden/`.
 
 ## Developer app server
 
-`./app` serves the static build. For Vite HMR while editing the UI:
+`./app` is the Vite dev server (HMR). Keep it running while you edit — the
+browser reloads. `./app --preview` serves the last `dist` build (no reload).
 
 ```bash
-npm run dev:app          # http://localhost:5173
+./app                    # http://127.0.0.1:4173
+npm run dev:app          # same server, default Vite port 5173
 ```
 
 ## Create API

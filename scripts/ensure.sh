@@ -14,13 +14,15 @@ ensure_node() {
   fi
 }
 
-# Sets LAUNCHER_CLEAN and LAUNCHER_ARGS (strips --clean from "$@").
+# Sets LAUNCHER_CLEAN, LAUNCHER_PREVIEW, and LAUNCHER_ARGS.
 parse_launcher_args() {
   LAUNCHER_CLEAN=0
+  LAUNCHER_PREVIEW=0
   LAUNCHER_ARGS=()
   for arg in "$@"; do
     case "$arg" in
       --clean) LAUNCHER_CLEAN=1 ;;
+      --preview) LAUNCHER_PREVIEW=1 ;;
       *) LAUNCHER_ARGS+=("$arg") ;;
     esac
   done
@@ -78,20 +80,28 @@ _bootstrap_app() {
   if [[ ! -d "$ROOT/src.app/node_modules" ]]; then
     npm install --prefix "$ROOT/src.app"
   fi
-  if [[ ! -f "$ROOT/src.app/dist/index.html" ]]; then
-    npm run build:app --prefix "$ROOT"
-  fi
 }
 
-# One Building/success for ./app (create+app npm install and Vite dist).
+# One Building/success for ./app (create+app npm install). Vite syncs on start.
 ensure_app_bootstrap() {
-  if [[ -d "$ROOT/src.create/node_modules" && -d "$ROOT/src.app/node_modules" && -f "$ROOT/src.app/dist/index.html" ]]; then
+  if [[ -d "$ROOT/src.create/node_modules" && -d "$ROOT/src.app/node_modules" ]]; then
     return
   fi
   run_logged "build-app.log" \
     "Building (first run, may take a minute)…" \
     "Build succeeded." \
     _bootstrap_app
+}
+
+# Static `vite preview` needs dist (./app --preview).
+ensure_app_dist() {
+  if [[ -f "$ROOT/src.app/dist/index.html" ]]; then
+    return
+  fi
+  run_logged "build-app.log" \
+    "Building (first run, may take a minute)…" \
+    "Build succeeded." \
+    npm run build:app --prefix "$ROOT"
 }
 
 # Bundled goldens are enough to run; BeebAsm is only needed to rebuild the player.

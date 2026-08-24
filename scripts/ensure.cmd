@@ -6,11 +6,13 @@ goto :eof
 
 :parse_launcher_args
 set LAUNCHER_CLEAN=0
+set LAUNCHER_PREVIEW=0
 set "LAUNCHER_ARGS="
 :parse_launcher_args_loop
 if "%~1"=="" goto :eof
 if /I "%~1"=="--clean" set LAUNCHER_CLEAN=1
-if /I not "%~1"=="--clean" set "LAUNCHER_ARGS=%LAUNCHER_ARGS% %1"
+if /I "%~1"=="--preview" set LAUNCHER_PREVIEW=1
+if /I not "%~1"=="--clean" if /I not "%~1"=="--preview" set "LAUNCHER_ARGS=%LAUNCHER_ARGS% %1"
 shift
 goto parse_launcher_args_loop
 
@@ -84,15 +86,16 @@ if not exist "%ROOT%\src.app\node_modules\" (
   call npm install --prefix "%ROOT%\src.app"
   if errorlevel 1 exit /b 1
 )
-if not exist "%ROOT%\src.app\dist\index.html" (
-  call npm run build:app --prefix "%ROOT%"
-  if errorlevel 1 exit /b 1
-)
 goto :eof
 
 :ensure_app_bootstrap
-if exist "%ROOT%\src.create\node_modules\" if exist "%ROOT%\src.app\node_modules\" if exist "%ROOT%\src.app\dist\index.html" goto :eof
+if exist "%ROOT%\src.create\node_modules\" if exist "%ROOT%\src.app\node_modules\" goto :eof
 call :run_logged "build-app.log" "Building (first run, may take a minute)..." "Build succeeded." :_bootstrap_app
+goto :eof
+
+:ensure_app_dist
+if exist "%ROOT%\src.app\dist\index.html" goto :eof
+call :run_logged "build-app.log" "Building (first run, may take a minute)..." "Build succeeded." npm run build:app --prefix "%ROOT%"
 goto :eof
 
 :ensure_player

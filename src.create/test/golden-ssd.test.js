@@ -31,9 +31,10 @@ test("dfsTuneName / M.MENU layout", () => {
     { dfsName: "S.01CYBER", title: "Cybernoid" },
   ]);
   assert.equal(menu[0], 2);
-  assert.equal(menu.length, 1 + 42 * 2);
+  assert.equal(menu.length, 1 + 42 * 2 + 4);
   assert.equal(menu.subarray(1, 10).toString("ascii"), "S.00HEAD_");
   assert.equal(menu[10], 0x0d);
+  assert.equal(menu.readUInt16LE(1 + 84), 180);
 });
 
 test("packBeebSidSsd catalogue shape", () => {

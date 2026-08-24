@@ -111,6 +111,7 @@ export function convertTunesStage(opts = {}) {
             vars: one.vars,
             meta: one.meta,
             dfsName: input.dfsName,
+            playSeconds: input.playSeconds,
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

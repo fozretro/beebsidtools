@@ -6,4 +6,5 @@ export const keyCodes = {
   ENTER: 13,
   SHIFT: 16,
   DOWN: 40,
+  A: 65,
 };

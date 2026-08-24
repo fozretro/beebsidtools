@@ -35,6 +35,8 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 ./create ssd sids/Head_Over_Heels.sid sids/Cybernoid.sid \
   -o /tmp/two.ssd --title=TWO
 ./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --no-preview
+./create ssd ~/HVSC/C64Music/MUSICIANS/H/Hubbard_Rob/Commando.sid \
+  -o /tmp/commando.ssd --no-preview   # auto-finds DOCUMENTS/Songlengths.md5
 ./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --record-audio
 ./create patches
 ```
@@ -46,9 +48,9 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 ## React Disc Creator
 
 ```bash
-./app                    # sync + Vite preview (builds dist on first run)
-# http://127.0.0.1:4173
-npm run dev:app          # Vite dev server (developers)
+./app                    # Vite dev server, reloads on save (http://127.0.0.1:4173)
+./app --preview          # static dist (builds if missing)
+npm run dev:app          # same as ./app, default Vite port 5173
 ```
 
 App must import `beebsidtools-src-create/preview/browser` (never `preview/node`).

@@ -1,0 +1,15 @@
+; C64 SID + CIA (outside the player image → EQU in BeebAsm)
+; Copy into the work dir if missing. Add labels this tune actually uses.
+
+SID = $D400
+SID_V1FREQLO = $D400
+SID_V1FREQHI = $D401
+SID_V1PWLO = $D402
+SID_V1PWHI = $D403
+SID_V1CTRL = $D404
+SID_V1AD = $D405
+SID_V1SR = $D406
+SID_MODEVOL = $D418
+
+CIA1_TALO = $DC04
+CIA1_TAHI = $DC05
