@@ -26,6 +26,7 @@ export const SSD_ADDR = {
  * @property {string} [baseName]
  * @property {string} [title]
  * @property {string} [dfsName]  override auto S.nnXXXXX
+ * @property {number} [playSeconds]  auto-play length; default 180
  */
 
 /**
@@ -66,7 +67,12 @@ export function packBeebSidSsd(opts) {
     const baseName = t.baseName ?? `TUNE${i}`;
     const dfsName = t.dfsName ?? dfsTuneName(i, baseName);
     const title = (t.title && t.title.trim()) || titleFromStem(baseName);
-    return { dfsName, title, bbcSid: Buffer.from(t.bbcSid) };
+    return {
+      dfsName,
+      title,
+      playSeconds: t.playSeconds,
+      bbcSid: Buffer.from(t.bbcSid),
+    };
   });
 
   const menu = buildMenu(menuEntries);

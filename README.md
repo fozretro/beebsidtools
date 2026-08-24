@@ -49,9 +49,16 @@ Hosted on GitHub Pages: <https://fozretro.github.io/beebsidtools/>
 ```
 
 Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`.
-First run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
+**HVSC** browses a local High Voltage SID Collection; **Add** uses
+`DOCUMENTS/Songlengths.md5` when that file is in the tree (Time column). First
+run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
 
 Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits, **f0** Help (version and release notes).
+
+On the SIDPLAY menu (Test Disc or a real Beeb): **Return** plays the highlighted
+tune, **A** auto-plays each default song then the next (wraps), **Return** while
+playing skips, **Escape** returns to the menu. Auto-play length is the HVSC
+time when known, otherwise 3:00.
 
 ### Command line
 
@@ -74,6 +81,11 @@ Sample tunes are in `sids/`. On Windows, use `.\create.cmd` in place of `./creat
 .\create.cmd convert sids\Cybernoid.sid -o out\cyber
 ```
 
+`./create ssd` is the same pack path as the Disc Creator (same `.ssd` for the
+same SIDs and times). It walks up from each `.sid` for HVSC
+`DOCUMENTS/Songlengths.md5`, or you can pass `--songlengths=`. Unmatched tunes
+get 3:00.
+
 `./create` / `.\create.cmd` with no arguments lists every option. `--clean` is a
 launcher flag (not passed to convert/ssd): it wipes `node_modules` / player
 copies / logs, then bootstraps and runs the rest of the command.
@@ -83,6 +95,8 @@ Useful flags:
 | Flag | Meaning |
 |------|---------|
 | `--title=NAME` | Disc title in the catalogue |
+| `--songlengths=PATH` | HVSC `Songlengths.md5` for auto-play times (also found by walking up from each `.sid`) |
+| `--no-songlengths` | Always use the 3:00 auto-play default |
 | `--no-preview` | Skip the menu screenshot |
 | `--record-audio` | Also write short preview WAVs |
 | `--no-patch` | Skip built-in hardware patches |

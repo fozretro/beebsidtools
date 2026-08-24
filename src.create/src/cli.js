@@ -15,9 +15,20 @@ import {
   writeFileSync,
   mkdirSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { basename, dirname, join, resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { createSsd, convertSids } from "./index.js";
+import {
+  createSsd,
+  convertSids,
+  parsePsid,
+  parseSonglengthsMd5,
+  lookupPlaySeconds,
+  hvscRelFromSonglengths,
+  formatPlaySeconds,
+  DEFAULT_PLAY_SECONDS,
+} from "./index.js";
+import { locateSonglengthsFile } from "./lib/songlengthsLocate.js";
 import { builtinPatches, patchPhase } from "./lib/patchRegistry.js";
 import {
   writePreviewFiles,
@@ -39,7 +50,9 @@ function usage(code = 1) {
            [--sidpelk] [--hex=path] [--patch=id] [--no-patch]
            [--page=HH] [--sid-dest=HHHH] [--force|--no-force]
            [--keep-zp|--no-keep-zp] [--zp=LO-HI]
-           [--no-preview] [--record-audio] [-o outdir|out.ssd]
+           [--no-preview] [--record-audio]
+           [--songlengths=Songlengths.md5] [--no-songlengths]
+           [-o outdir|out.ssd]
   create ssd <in.sid...> [same options] [-o out.ssd]
   create patches
   create --version
@@ -53,6 +66,8 @@ function usage(code = 1) {
   SSD create skips a tune that fails convert (reloc, size, unpatched RSID)
   and packs the rest. Headless preview via createSsd({ preview }) → menu.png
   (skip with --no-preview). --record-audio adds ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune.
+  Auto-play times: walks up from each .sid for HVSC DOCUMENTS/Songlengths.md5
+  (or pass --songlengths=). Default ${DEFAULT_PLAY_SECONDS}s if unmatched.
 `);
   process.exit(code);
 }
@@ -96,6 +111,7 @@ function parseArgs(argv) {
   let title = null;
   let sidplayPath = null;
   let hexPath = null;
+  let songlengthsPath = null;
   /** @type {Record<string, unknown>} */
   const reloc = {};
 
@@ -142,6 +158,8 @@ function parseArgs(argv) {
       flags.add("no-preview");
     } else if (a === "--record-audio") {
       flags.add("record-audio");
+    } else if (a === "--no-songlengths") {
+      flags.add("no-songlengths");
     } else if (a.startsWith("--title=")) {
       title = a.slice("--title=".length);
     } else if (a === "--title") {
@@ -157,6 +175,12 @@ function parseArgs(argv) {
     } else if (a === "--hex") {
       hexPath = args[++i];
       if (!hexPath) usage();
+    } else if (a.startsWith("--songlengths=")) {
+      songlengthsPath = a.slice("--songlengths=".length);
+      if (!songlengthsPath) usage();
+    } else if (a === "--songlengths") {
+      songlengthsPath = args[++i];
+      if (!songlengthsPath) usage();
     } else if (a === "-o" || a === "--out") {
       out = args[++i];
       if (!out) usage();
@@ -168,7 +192,18 @@ function parseArgs(argv) {
     }
   }
 
-  return { cmd, flags, positional, out, patch, title, sidplayPath, hexPath, reloc };
+  return {
+    cmd,
+    flags,
+    positional,
+    out,
+    patch,
+    title,
+    sidplayPath,
+    hexPath,
+    songlengthsPath,
+    reloc,
+  };
 }
 
 function resolvePlayerFile(name, explicit, fallbacks) {
@@ -227,8 +262,62 @@ function loadSidInputs(paths) {
     return {
       sid: readFileSync(abs),
       baseName: basename(abs, ".sid"),
+      sidPath: abs,
     };
   });
+}
+
+function sidMd5(buf) {
+  return createHash("md5").update(buf).digest("hex");
+}
+
+function startSongOf(sid) {
+  try {
+    return parsePsid(sid).defsong;
+  } catch {
+    return 1;
+  }
+}
+
+function resolveSonglengthsPath(sidPaths, explicit, disabled) {
+  if (disabled) return null;
+  if (explicit) {
+    const p = resolve(explicit);
+    if (!existsSync(p)) throw new Error(`Missing Songlengths.md5: ${p}`);
+    return p;
+  }
+  return locateSonglengthsFile(
+    sidPaths.map((p) => dirname(p)),
+    existsSync,
+  );
+}
+
+function attachPlaySeconds(inputs, { flags, songlengthsPath, onLog }) {
+  const slPath = resolveSonglengthsPath(
+    inputs.map((i) => i.sidPath),
+    songlengthsPath,
+    flags.has("no-songlengths"),
+  );
+  if (!slPath) {
+    onLog?.(
+      `  song lengths: default ${formatPlaySeconds(DEFAULT_PLAY_SECONDS)} (no Songlengths.md5)`,
+    );
+    return inputs;
+  }
+  const db = parseSonglengthsMd5(readFileSync(slPath, "utf8"));
+  onLog?.(`  song lengths: ${slPath}`);
+  let hit = 0;
+  const next = inputs.map((input) => {
+    const playSeconds = lookupPlaySeconds(db, {
+      path: hvscRelFromSonglengths(input.sidPath, slPath),
+      md5: sidMd5(input.sid),
+      startSong: startSongOf(input.sid),
+    });
+    if (playSeconds != null) hit += 1;
+    return { ...input, playSeconds };
+  });
+  onLog?.(`    ${hit}/${inputs.length} matched`);
+  return next;
 }
 
 /** @returns {false|{ audio: boolean, secondsPerTune: number }} */
@@ -240,10 +329,20 @@ function previewOptsFromFlags(flags) {
 }
 
 async function cmdConvert(opts) {
-  const { flags, positional, out, patch, title, sidplayPath, hexPath, reloc } = opts;
+  const {
+    flags,
+    positional,
+    out,
+    patch,
+    title,
+    sidplayPath,
+    hexPath,
+    songlengthsPath,
+    reloc,
+  } = opts;
   if (positional.length === 0) usage();
 
-  const inputs = loadSidInputs(positional);
+  let inputs = loadSidInputs(positional);
   const outIsSsd = out && extname(out).toLowerCase() === ".ssd";
   const wantSsd = flags.has("ssd") || outIsSsd || inputs.length > 1;
 
@@ -273,6 +372,12 @@ async function cmdConvert(opts) {
     }
     return;
   }
+
+  inputs = attachPlaySeconds(inputs, {
+    flags,
+    songlengthsPath,
+    onLog: (line) => console.error(line),
+  });
 
   const includeSidpelk = flags.has("sidpelk");
   const { assets } = loadAssets({ sidplayPath, hexPath, includeSidpelk });

@@ -2,7 +2,17 @@
  * SIDPLAY M.MENU binary, DFS tune names (S.nnXXXXX), and !BOOT.
  *
  * Port of Dominic Beesley's mkssd.sh menu / !BOOT layout (sidplay-build / Stardot).
+ * After the 42-byte entries: uint16 LE play-seconds per tune (SIDPLAY auto-play).
  */
+
+import {
+  MENU_BUF_SIZE,
+  playSecondsOrDefault,
+} from "./songlengths.js";
+
+export { DEFAULT_PLAY_SECONDS, MENU_BUF_SIZE } from "./songlengths.js";
+
+export const MENU_ENTRY_SIZE = 42;
 
 /**
  * BBC DFS name for tune index i and stem (max 9 chars: S.nnXXXXX).
@@ -35,7 +45,7 @@ export function menuEntry(fname, title) {
 }
 
 /**
- * @param {Array<{ dfsName: string, title: string }>} entries
+ * @param {Array<{ dfsName: string, title: string, playSeconds?: number }>} entries
  * @returns {Buffer}
  */
 export function buildMenu(entries) {
@@ -46,7 +56,18 @@ export function buildMenu(entries) {
   for (const e of entries) {
     parts.push(menuEntry(e.dfsName, e.title));
   }
-  return Buffer.concat(parts);
+  const times = Buffer.alloc(entries.length * 2);
+  for (let i = 0; i < entries.length; i++) {
+    times.writeUInt16LE(playSecondsOrDefault(entries[i].playSeconds), i * 2);
+  }
+  parts.push(times);
+  const menu = Buffer.concat(parts);
+  if (menu.length > MENU_BUF_SIZE) {
+    throw new Error(
+      `M.MENU ${menu.length} bytes > player buffer ${MENU_BUF_SIZE}`,
+    );
+  }
+  return menu;
 }
 
 /** !BOOT: Mode 7 then *SIDPLAY (CR-terminated BBC lines). */

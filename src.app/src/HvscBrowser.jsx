@@ -8,10 +8,15 @@ import {
   visibleRows,
 } from "./hvsc/libraryView.js";
 import {
+  applySonglengths,
+  formatPlaySeconds,
+} from "beebsidtools-src-create";
+import {
   canPickDirectory,
   ensureDirectoryPermission,
   indexDirectory,
   indexDroppedFiles,
+  loadSonglengthsFromDir,
   pickHvscDirectory,
   readHvscFile,
 } from "./hvsc/scan.js";
@@ -97,10 +102,25 @@ export default function HvscBrowser({
       try {
         const lib = await loadLibrary();
         if (cancelled) return;
-        setMeta(lib.meta);
+        let nextTunes = lib.tunes;
+        let nextMeta = lib.meta;
+        if (lib.handle && lib.tunes?.length) {
+          const ok = await ensureDirectoryPermission(lib.handle);
+          if (ok) {
+            const db = await loadSonglengthsFromDir(lib.handle);
+            if (db) {
+              nextTunes = applySonglengths(lib.tunes, db);
+              nextMeta = {
+                ...lib.meta,
+                songlengths: db.byPath.size,
+              };
+            }
+          }
+        }
+        setMeta(nextMeta);
         setHandle(lib.handle);
-        setTunes(lib.tunes);
-        setExpanded(defaultExpanded(lib.tunes));
+        setTunes(nextTunes);
+        setExpanded(defaultExpanded(nextTunes));
         loadedRef.current = true;
       } catch (err) {
         if (!cancelled) setError(err.message || String(err));
@@ -189,7 +209,12 @@ export default function HvscBrowser({
         ({ done }) => setBusy(`Indexing… ${done}`),
       );
       await persist(nextMeta, root, nextTunes);
-      onLog(`HVSC: indexed ${nextMeta.count} SIDs from ${nextMeta.rootName}`);
+      const sl = nextMeta.songlengths
+        ? ` · ${nextMeta.songlengths} song lengths`
+        : "";
+      onLog(
+        `HVSC: indexed ${nextMeta.count} SIDs from ${nextMeta.rootName}${sl}`,
+      );
     } catch (err) {
       setError(err.message || String(err));
     } finally {
@@ -227,7 +252,12 @@ export default function HvscBrowser({
         ({ done }) => setBusy(`Indexing… ${done}`),
       );
       await persist(nextMeta, null, nextTunes);
-      onLog(`HVSC: indexed ${nextMeta.count} SIDs from ${nextMeta.rootName}`);
+      const sl = nextMeta.songlengths
+        ? ` · ${nextMeta.songlengths} song lengths`
+        : "";
+      onLog(
+        `HVSC: indexed ${nextMeta.count} SIDs from ${nextMeta.rootName}${sl}`,
+      );
     } catch (err) {
       setError(err.message || String(err));
     } finally {
@@ -307,6 +337,7 @@ export default function HvscBrowser({
     try {
       const file = await fileForRow(row);
       file.hvscPath = row.path;
+      if (row.playSeconds != null) file.playSeconds = row.playSeconds;
       onAddFiles([file]);
     } catch (err) {
       setError(err.message || String(err));
@@ -637,7 +668,7 @@ export default function HvscBrowser({
                           )}
                         </span>
                         <span className="hvsc-td hvsc-td--time">
-                          {isTune ? "—" : ""}
+                          {isTune ? formatPlaySeconds(row.playSeconds) : ""}
                         </span>
                         <span className="hvsc-td">{isTune ? row.author : ""}</span>
                         <span className="hvsc-td">{isTune ? row.release : ""}</span>

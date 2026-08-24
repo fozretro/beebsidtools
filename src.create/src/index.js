@@ -34,7 +34,23 @@ export {
   dfsTuneName,
   titleFromStem,
   menuEntry,
+  DEFAULT_PLAY_SECONDS,
+  MENU_BUF_SIZE,
+  MENU_ENTRY_SIZE,
 } from "./lib/menu.js";
+export {
+  parseSonglengthsMd5,
+  parsePlayTime,
+  lookupPlaySeconds,
+  applySonglengths,
+  normalizeHvscPath,
+  hvscRelFromSonglengths,
+  formatPlaySeconds,
+  clampPlaySeconds,
+  playSecondsOrDefault,
+  SONGLENGTHS_NAME,
+  SONGLENGTHS_REL,
+} from "./lib/songlengths.js";
 export {
   createDisc,
   addFile,
@@ -68,7 +84,7 @@ import { rsidNeedsManualPatch } from "./lib/rsid.js";
 
 /**
  * @param {Buffer|Uint8Array|{sid:Buffer|Uint8Array,baseName?:string,title?:string,patch?:true|string|false,dfsName?:string}|Array} inputs
- * @returns {Array<{sid:Buffer,baseName:string,title?:string,patch?:true|string|false,dfsName?:string}>}
+ * @returns {Array<{sid:Buffer,baseName:string,title?:string,patch?:true|string|false,dfsName?:string,playSeconds?:number}>}
  */
 export function normalizeSidInputs(inputs) {
   const list = Array.isArray(inputs) ? inputs : [inputs];
@@ -84,6 +100,7 @@ export function normalizeSidInputs(inputs) {
         title: item.title,
         patch: item.patch,
         dfsName: item.dfsName,
+        playSeconds: item.playSeconds,
       };
     }
     throw new Error(`input[${i}]: need Buffer or { sid, baseName? }`);

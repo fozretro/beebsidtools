@@ -35,6 +35,8 @@ const HELP_TEXT = [
   "Drop .sid files, Choose files, or HVSC to browse a local collection.",
   "HVSC: folder tree, search by title/author/released/filename, Play, Add.",
   "Play starts the SID default song; , / . or ‹ › step through songs.",
+  "SIDPLAY: Return plays, A auto-plays each default song then the next,",
+  "Return while playing skips, Escape returns to the menu.",
   "Index stays in this browser. Play listens with Hermit jsSID.",
   "",
   `BeebSID Tools v${TOOLS_VERSION}`,
@@ -258,7 +260,11 @@ export default function App() {
       for (const f of files) {
         const sid = Buffer.from(await f.arrayBuffer());
         const baseName = f.name.replace(/\.sid$/i, "") || "tune";
-        inputs.push({ sid, baseName });
+        inputs.push({
+          sid,
+          baseName,
+          playSeconds: f.playSeconds,
+        });
       }
 
       appendLog(`Creating SSD from ${inputs.length} SID(s) (in-browser)…`);

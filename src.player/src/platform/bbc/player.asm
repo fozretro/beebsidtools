@@ -50,8 +50,10 @@ KEY_ESC         = 256 - 113
 KEY_UP          = 256 - 58
 KEY_DOWN        = 256 - 42
 KEY_RETURN      = 256 - 74
+KEY_A           = 256 - 66          ; A  (auto-play)
 KEY_COMMA       = 256 - 103         ; , / <  (song prev)
 KEY_PERIOD      = 256 - 104         ; . / >  (song next)
+DEFAULT_PLAY_SECS = 180             ; when M.MENU has no time table
 
 ; OSBYTE A= / service X=
 OSBYTE_OS_VERSION       = 0         ; X=1 → host type in X
@@ -217,6 +219,26 @@ KEY_DOWN_MASK   = $80
         EQUB 0
 }
 .key_prev_ret
+{
+        EQUB 0
+}
+.key_prev_a
+{
+        EQUB 0
+}
+.autoplay
+{
+        EQUB 0
+}
+.play_secs_lo
+{
+        EQUB 0
+}
+.play_secs_hi
+{
+        EQUB 0
+}
+.frame_count
 {
         EQUB 0
 }
@@ -432,6 +454,7 @@ KEY_DOWN_MASK   = $80
                 lda     #HI(menu_screen)
                 sta     zPTR + 1
                 jsr     unpack_screen
+                jsr     show_menu_hint
 
                 lda     BRKV
                 sta     save_brkv_lo
@@ -479,9 +502,17 @@ KEY_DOWN_MASK   = $80
                 jsr     check_key
                 cmp     key_prev_dn
                 sta     key_prev_dn
-                beq     mret
+                beq     ma
                 cmp     #0
                 beq     men_dn
+.ma
+        ldx     #KEY_A
+                jsr     check_key
+                cmp     key_prev_a
+                sta     key_prev_a
+                beq     mret
+                cmp     #0
+                beq     men_auto
 .mret
         ldx     #KEY_RETURN
                 jsr     check_key
@@ -529,11 +560,68 @@ KEY_DOWN_MASK   = $80
         sta     menu_off
                 jmp     menu_loop
 
+.men_auto
+        lda     #1
+                sta     autoplay
+                jmp     start_from_menu
+
 .men_sel
-        clc
+        lda     #0
+                sta     autoplay
+                jmp     start_from_menu
+
+}
+
+; Highlighted row → menu_run, load, play default song.
+.start_from_menu
+{
+                clc
                 lda     menu_sel
                 adc     menu_off
-                sta     menu_run        ; tune to play
+                sta     menu_run
+                jmp     load_and_play
+
+}
+
+; Next catalogue entry (wrap). Keeps autoplay as-is.
+.tune_next_file
+{
+                jsr     shut_up
+                jsr     zp_restore_mos
+                inc     menu_run
+                lda     menu_run
+                cmp     menu
+                bcc     ready
+                lda     #0
+                sta     menu_run
+.ready
+                jsr     sync_menu_highlight
+                jmp     load_and_play
+
+}
+
+.sync_menu_highlight
+{
+                lda     menu_run
+                cmp     #10
+                bcc     near
+                sec
+                sbc     #9
+                sta     menu_off
+                lda     #9
+                sta     menu_sel
+                rts
+.near
+                sta     menu_sel
+                lda     #0
+                sta     menu_off
+                rts
+
+}
+
+.load_and_play
+{
+                lda     menu_run
                 tax
                 ldy     #42
                 jsr     mulxy           ; menu_run *42
@@ -591,8 +679,73 @@ KEY_DOWN_MASK   = $80
                 sta     last_menu_run
 
 .loaded
-        lda     $19FD                   ; default song
+                jsr     load_play_secs
+                lda     $19FD                   ; default song
                 jmp     start_tune
+
+}
+
+; Seconds table sits after the 42-byte entries. Missing/zero → 180.
+.load_play_secs
+{
+                lda     menu
+                tax
+                ldy     #42
+                jsr     mulxy
+                clc
+                txa
+                adc     #LO(menu + 1)
+                sta     zPTR
+                tya
+                adc     #HI(menu + 1)
+                sta     zPTR + 1
+                lda     menu_run
+                asl     a
+                clc
+                adc     zPTR
+                sta     zPTR
+                lda     #0
+                adc     zPTR + 1
+                sta     zPTR + 1
+                ldy     #0
+                lda     (zPTR), y
+                sta     play_secs_lo
+                iny
+                lda     (zPTR), y
+                sta     play_secs_hi
+                ora     play_secs_lo
+                bne     ok
+                lda     #DEFAULT_PLAY_SECS
+                sta     play_secs_lo
+                lda     #0
+                sta     play_secs_hi
+.ok
+                lda     #0
+                sta     frame_count
+                rts
+
+}
+
+; 50 vsyncs = 1s. Z set when the remaining seconds hit 0.
+.dec_play_timer
+{
+                inc     frame_count
+                lda     frame_count
+                cmp     #50
+                bcc     notsec
+                lda     #0
+                sta     frame_count
+                lda     play_secs_lo
+                bne     dlo
+                dec     play_secs_hi
+.dlo
+                dec     play_secs_lo
+                lda     play_secs_lo
+                ora     play_secs_hi
+                rts
+.notsec
+                lda     #1
+                rts
 
 }
 .show_men
@@ -806,6 +959,12 @@ KEY_DOWN_MASK   = $80
 .tune_loop
 {
         jsr     wait_frame
+                lda     autoplay
+                beq     no_tick
+                jsr     dec_play_timer
+                bne     no_tick
+                jmp     tune_next_file
+.no_tick
                 jsr     play_tune
 
                 jsr     show_freq_vol
@@ -833,9 +992,18 @@ KEY_DOWN_MASK   = $80
                 jsr     check_key
                 cmp     key_prev_next
                 sta     key_prev_next
-                beq     kdone
+                beq     kret
                 cmp     #0
                 beq     tune_loop_song_next
+.kret
+        ldx     #KEY_RETURN
+                jsr     check_key
+                cmp     key_prev_ret
+                sta     key_prev_ret
+                beq     kdone
+                cmp     #0
+                bne     kdone
+                jmp     tune_next_file
 .kdone
         jmp     tune_loop
 
@@ -862,6 +1030,8 @@ KEY_DOWN_MASK   = $80
 }
 .tune_loop_esc
 {
+                lda     #0
+                sta     autoplay
                 jsr     shut_up
                 jsr     zp_restore_mos
                 lda     #LO(menu_screen)
@@ -869,6 +1039,7 @@ KEY_DOWN_MASK   = $80
                 lda     #HI(menu_screen)
                 sta     zPTR + 1
                 jsr     unpack_screen
+                jsr     show_menu_hint
                 jsr     wait_menu_keys_up
                 jsr     seed_menu_keys
                 jmp     menu_loop
@@ -885,6 +1056,9 @@ KEY_DOWN_MASK   = $80
                 ldx     #KEY_PERIOD
                 jsr     check_key
                 bne     wait_play_keys_up
+                ldx     #KEY_RETURN
+                jsr     check_key
+                bne     wait_play_keys_up
                 rts
 
 }
@@ -899,6 +1073,9 @@ KEY_DOWN_MASK   = $80
                 ldx     #KEY_PERIOD
                 jsr     check_key
                 sta     key_prev_next
+                ldx     #KEY_RETURN
+                jsr     check_key
+                sta     key_prev_ret
                 rts
 
 }
@@ -914,6 +1091,9 @@ KEY_DOWN_MASK   = $80
                 jsr     check_key
                 bne     wait_menu_keys_up
                 ldx     #KEY_RETURN
+                jsr     check_key
+                bne     wait_menu_keys_up
+                ldx     #KEY_A
                 jsr     check_key
                 bne     wait_menu_keys_up
                 rts
@@ -933,6 +1113,9 @@ KEY_DOWN_MASK   = $80
                 ldx     #KEY_RETURN
                 jsr     check_key
                 sta     key_prev_ret
+                ldx     #KEY_A
+                jsr     check_key
+                sta     key_prev_a
                 rts
 
 ; MOS on for DFS / clean exit; otherwise parked (SEI + poll VSync).
@@ -1714,6 +1897,22 @@ KEY_DOWN_MASK   = $80
                 rts
 
 
+; Double-height "A AUTO" in the SIDPLAY header gap.
+}
+.show_menu_hint
+{
+                ldx     #0
+.lp
+                lda     auto_hint, x
+                sta     $7C00 + 1 * 40 + 20, x
+                sta     $7C00 + 2 * 40 + 20, x
+                inx
+                cpx     #6
+                bne     lp
+                rts
+.auto_hint
+                EQUS    "A AUTO"
+
 ; Mode 7 RAM only (no OSWRCH). Tune marker at row 23, column 30.
 }
 .screen_play
@@ -1726,6 +1925,25 @@ KEY_DOWN_MASK   = $80
 
                 jsr     message_reset
 
+                lda     #131                            ; yellow, left of song marker
+                sta     $7C00 + 23 * 40 + 24
+                ldx     #0
+                lda     autoplay
+                bne     auto_on
+                lda     #32
+.auto_sp
+                sta     $7C00 + 23 * 40 + 25, x
+                inx
+                cpx     #4
+                bne     auto_sp
+                jmp     song_mark
+.auto_on
+                lda     auto_word, x
+                sta     $7C00 + 23 * 40 + 25, x
+                inx
+                cpx     #4
+                bne     auto_on
+.song_mark
                 lda     #132                            ; Mode 7 blue
                 sta     $7C00 + 23 * 40 + 30
                 ldx     zCURTUNE
@@ -1747,6 +1965,8 @@ KEY_DOWN_MASK   = $80
 .slt2
         sta     $7C00 + 23 * 40 + 33
                 jmp     shut_up
+.auto_word
+                EQUS    "AUTO"
 
 }
 .shut_up

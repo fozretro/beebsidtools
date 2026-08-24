@@ -1,5 +1,11 @@
 import { Buffer } from "buffer";
-import { parsePsid } from "beebsidtools-src-create";
+import {
+  applySonglengths,
+  parsePsid,
+  parseSonglengthsMd5,
+  SONGLENGTHS_NAME,
+  SONGLENGTHS_REL,
+} from "beebsidtools-src-create";
 
 const HEADER_BYTES = 0x80;
 
@@ -82,13 +88,16 @@ export async function indexDirectory(root, onProgress) {
 
   await walk(root, "");
   onProgress?.({ done, path: "" });
+  const sl = await loadSonglengthsFromDir(root);
+  const withTimes = applySonglengths(tunes, sl);
   return {
     meta: {
       rootName: root.name,
       count: tunes.length,
       indexedAt: Date.now(),
+      songlengths: sl ? sl.byPath.size : 0,
     },
-    tunes,
+    tunes: withTimes,
   };
 }
 
@@ -121,15 +130,49 @@ export async function indexDroppedFiles(fileList, onProgress) {
     }
   }
   onProgress?.({ done, path: "" });
+  const sl = await loadSonglengthsFromFiles(fileList);
+  const withTimes = applySonglengths(tunes, sl);
   return {
     meta: {
       rootName: inferRootName(sids) || "HVSC",
       count: tunes.length,
       indexedAt: Date.now(),
       ephemeral: true,
+      songlengths: sl ? sl.byPath.size : 0,
     },
-    tunes,
+    tunes: withTimes,
   };
+}
+
+/**
+ * @param {FileSystemDirectoryHandle} root
+ */
+export async function loadSonglengthsFromDir(root) {
+  for (const parts of SONGLENGTHS_REL) {
+    try {
+      let dir = root;
+      for (const name of parts.slice(0, -1)) {
+        dir = await dir.getDirectoryHandle(name);
+      }
+      const file = await (await dir.getFileHandle(parts.at(-1))).getFile();
+      return parseSonglengthsMd5(await file.text());
+    } catch {
+      /* try next layout */
+    }
+  }
+  return null;
+}
+
+/**
+ * @param {FileList|File[]} fileList
+ */
+export async function loadSonglengthsFromFiles(fileList) {
+  const found = [...fileList].find((f) => {
+    const p = (f.webkitRelativePath || f.name).replace(/\\/g, "/");
+    return new RegExp(`(?:^|/)${SONGLENGTHS_NAME}$`, "i").test(p);
+  });
+  if (!found) return null;
+  return parseSonglengthsMd5(await found.text());
 }
 
 function inferRootName(files) {
