@@ -438,7 +438,10 @@ export default function HvscBrowser({
               </span>
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  if (playingPath) onStop();
+                  setQuery(e.target.value);
+                }}
                 onFocus={() => setFieldOpen(true)}
                 placeholder={`${FIELD_LABELS[field]} Search`}
                 aria-label="Search HVSC"
