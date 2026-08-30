@@ -1,6 +1,7 @@
 /**
  * Select BeebSID patches by SHA-256 or id.
- * Patches declare phase: "pre" (before relocate) or "post" (after, default).
+ * Patches declare phase: "pre" (before relocate), "replace" (supply a
+ * .bbcsid and skip relocate/rip), or "post" (after relocate, default).
  */
 
 import { builtinPatches } from "../patches/index.js";
@@ -24,9 +25,10 @@ export function loadPatches() {
   return builtinPatches;
 }
 
-/** @param {object} p @returns {"pre"|"post"} */
+/** @param {object} p @returns {"pre"|"post"|"replace"} */
 export function patchPhase(p) {
-  return p?.phase === "pre" ? "pre" : "post";
+  if (p?.phase === "pre" || p?.phase === "replace") return p.phase;
+  return "post";
 }
 
 /**
@@ -62,7 +64,7 @@ export function findPatchById(patches, id) {
  * @param {true|string|false|null} [opts.patchFlag=true]
  * @param {string} [opts.inputSha256]
  * @param {string} [opts.relocSha256]
- * @param {"pre"|"post"} [opts.phase="post"]
+ * @param {"pre"|"post"|"replace"} [opts.phase="post"]
  * @param {boolean} [opts.optional=false]
  */
 export function resolvePatch({

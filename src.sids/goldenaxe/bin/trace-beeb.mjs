@@ -2,7 +2,7 @@
 /**
  * SIDPLAY on jsbeeb: 50 Hz $FC20 snapshots + every store per play() burst.
  *
- * Packs Golden Axe with the create patch unless --ssd is given.
+ * Packs Golden Axe through create (listing .bbcsid) unless --ssd is given.
  * $FC20+r is stored as register r (same index as $D400+r).
  *
  *   node src.sids/goldenaxe/bin/trace-beeb.mjs [--seconds 8]

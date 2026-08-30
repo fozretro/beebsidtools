@@ -1,6 +1,7 @@
 # goldenaxe.bbcsid — Golden Axe assembled for SIDPLAY
 
-Listing-built `.bbcsid` for song 0. Not the convert/patcher path.
+Listing-built `.bbcsid` for song 0. Convert ships this image when the HVSC
+hash matches (`src.create/src/patches/golden-axe.js`).
 
 `from-listing.mjs` retargets [`../goldenaxe/src/player.asm`](../goldenaxe/src/player.asm):
 `org $4000`, `SID = $FC20`. `reloc-data.mjs` rewrites **only** known
@@ -16,15 +17,11 @@ then `LDA #$01 / JMP $4000` — the HVSC stub calls the player with
 BEEBASM=/path/to/beebasm src.sids/goldenaxe.bbcsid/bin/build.sh
 ```
 
-Writes `out/Golden_Axe.bbcsid` and `out/goldenaxe.ssd`. Compare pokes
-against Hermit on the HVSC original:
+Writes `out/Golden_Axe.bbcsid` and refreshes the create patch + convert
+golden. Pack a disc with `./create ssd` on the HVSC `.sid`.
 
 ```bash
 node src.sids/goldenaxe/bin/trace-c64.mjs --seconds 60 --no-wav
-node src.sids/goldenaxe/bin/trace-beeb.mjs --seconds 60 --no-wav \
-  --ssd src.sids/goldenaxe.bbcsid/out/goldenaxe.ssd \
-  --out src.sids/goldenaxe.bbcsid/out
-node src.sids/goldenaxe/bin/compare-pokes.mjs \
-  --a src.sids/goldenaxe/out/c64.sidtrace.json \
-  --b src.sids/goldenaxe.bbcsid/out/beeb.sidtrace.json
+node src.sids/goldenaxe/bin/trace-beeb.mjs --seconds 60 --no-wav
+node src.sids/goldenaxe/bin/compare-pokes.mjs
 ```

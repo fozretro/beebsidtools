@@ -32,5 +32,4 @@ echo "assembling player.asm…"
 
 node "$ROOT/bin/reloc-data.mjs" "$OUT/player.bin"
 node "$ROOT/bin/wrap.mjs" "$OUT/player.bin" "$OUT/Golden_Axe.bbcsid"
-node "$ROOT/bin/pack-ssd.mjs" "$OUT/Golden_Axe.bbcsid" "$OUT/goldenaxe.ssd"
-echo "OK: out/Golden_Axe.bbcsid + out/goldenaxe.ssd"
+echo "OK: out/Golden_Axe.bbcsid (embedded in create)"

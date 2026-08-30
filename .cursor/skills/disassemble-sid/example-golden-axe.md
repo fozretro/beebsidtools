@@ -38,8 +38,6 @@ Named from `LDA label,Y` in *this* listing.
 
 ## BeebSID note (after the replica is green)
 
-The listenable convert patch (`src.create/src/patches/golden-axe.js`) NOPs
-`$01` banking and copies the 4K to `$4000` (BBC NMI at `$0D00`; small gap
-before SIDPLAY). That is a **this-tune** RAM budget, not a default dest.
-A later leftover-`$90xx` reloc sounded worse and was dropped. Next change
-belongs in the listing / `.bbcsid` conditionals.
+Convert does not reloc this SID. On the HVSC hash it ships the listing
+`.bbcsid` from [`src.sids/goldenaxe.bbcsid/`](../../../src.sids/goldenaxe.bbcsid/)
+(song 0, player at `$4000`, SID `$FC20`). `build.sh` refreshes the create patch.

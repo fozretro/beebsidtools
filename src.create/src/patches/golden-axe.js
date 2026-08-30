@@ -1,234 +1,105 @@
 /**
- * Golden Axe (Jeroen Tel) — BeebSID hardware patch.
+ * Golden Axe (Jeroen Tel) — listing-built song 0 .bbcsid.
  *
- * Init copies a 4K player image under C64 I/O/BASIC ($9000 / $A000 / $A100)
- * with $01 banking. sidreloc maps that to $9000–$B0FF, which is sideways ROM
- * on the Beeb, so the copy does not stick and play never writes BeebSID.
+ * sidreloc plus a reloc walk cannot keep this packed player's poke lists
+ * locked to Hermit. Convert substitutes the assembled replica
+ * (`src.sids/goldenaxe.bbcsid/`). Song 0 only.
  *
- * The ripped tune already fills $19F8–$5396; the gap before SIDPLAY is only
- * 3K, and $0800–$17FF is NMI/DFS/OS workspace, so the 4K window goes at
- * $4000 (over later song images — songs 0–6 stay intact). $01 banking is a
- * no-op here and would smash BBC ZP.
- *
- * First listenable patch (workspace $4000). A later reloc pass that
- * also fixed leftover $90xx ops and the $995B curve was a regression
- * and was dropped.
+ * Refresh: src.sids/goldenaxe.bbcsid/bin/build.sh
  */
-
-import { parsePsid, rebuildPsid } from "../lib/psid.js";
-
-const WORK_NEW = 0x4000;
-const WORK_SIZE = 0x1000;
-const SID_OLD = 0xd400;
-const SID_NEW = 0xfc20;
-
-const PTR_TABLE = 0x1a80;
-const NUM_SLOTS = 9;
-
-const IMAGES = [
-  { src: 0x1af0, old: 0x9000, codeEnd: 0x900 },
-  { src: 0x2ae1, old: 0xa100, codeEnd: 0x900 },
-  { src: 0x3976, old: 0x9000, codeEnd: 0x900 },
-  { src: 0x4616, old: 0xa000, codeEnd: 0 },
-];
-
-const BANK_ZP_SITES = [0x1a02, 0x1a71, 0x1a76, 0x1a7d];
-
-const DEST_ABS = [
-  [0x1a5b, 0xa000],
-  [0x1a61, 0xa001],
-  [0x1a67, 0xa002],
-];
-
-const ABS3 = new Set([
-  0x0d, 0x0e, 0x1d, 0x1e, 0x20, 0x2c, 0x2d, 0x2e, 0x3d, 0x3e, 0x4c, 0x4d, 0x4e,
-  0x5d, 0x5e, 0x6c, 0x6d, 0x6e, 0x7d, 0x7e, 0x8c, 0x8d, 0x8e, 0x9d, 0x99, 0xac,
-  0xad, 0xae, 0xbc, 0xbd, 0xbe, 0xcc, 0xcd, 0xce, 0xdc, 0xdd, 0xde, 0xec, 0xed,
-  0xee, 0xfc, 0xfd, 0xfe, 0x19, 0x39, 0x59, 0x79, 0xb9, 0xd9, 0xf9,
-]);
-
-function relocPlayerImage(img, oldBase, newBase, codeEnd) {
-  const w = Buffer.from(img);
-  const delta = newBase - oldBase;
-  const pageDelta = (newBase >> 8) - (oldBase >> 8);
-  const dataBase = oldBase + Math.max(0, codeEnd);
-  const oldHi0 = dataBase >> 8;
-  const oldHi1 = (oldBase + WORK_SIZE) >> 8;
-  const stats = { abs: 0, sid: 0, words: 0, hi: 0 };
-  const marked = new Uint8Array(w.length);
-  const walkEnd = Math.min(w.length - 2, codeEnd);
-
-  let i = 0;
-  while (i < walkEnd) {
-    if (!ABS3.has(w[i])) {
-      i += 1;
-      continue;
-    }
-    const addr = w[i + 1] | (w[i + 2] << 8);
-    if (addr >= oldBase && addr < oldBase + WORK_SIZE) {
-      const neu = addr + delta;
-      w[i + 1] = neu & 0xff;
-      w[i + 2] = (neu >> 8) & 0xff;
-      marked[i] = marked[i + 1] = marked[i + 2] = 1;
-      stats.abs++;
-    } else if (addr >= SID_OLD && addr <= SID_OLD + 0x1f) {
-      const neu = addr - SID_OLD + SID_NEW;
-      w[i + 1] = neu & 0xff;
-      w[i + 2] = (neu >> 8) & 0xff;
-      marked[i] = marked[i + 1] = marked[i + 2] = 1;
-      stats.sid++;
-    }
-    i += 3;
-  }
-
-  const MEM_ABS = new Set([
-    0x20, 0x4c, 0x8c, 0x8d, 0x8e, 0x9d, 0x99, 0xad, 0xae, 0xac, 0xbd, 0xb9,
-    0xce, 0xee, 0xde, 0xfe, 0xcd, 0xdd,
-  ]);
-  for (i = 0; i < walkEnd; i++) {
-    if (marked[i] || marked[i + 1] || marked[i + 2]) continue;
-    if (!MEM_ABS.has(w[i])) continue;
-    const addr = w[i + 1] | (w[i + 2] << 8);
-    if (addr < oldBase || addr >= oldBase + WORK_SIZE) continue;
-    const neu = addr + delta;
-    w[i + 1] = neu & 0xff;
-    w[i + 2] = (neu >> 8) & 0xff;
-    marked[i] = marked[i + 1] = marked[i + 2] = 1;
-    stats.abs++;
-  }
-
-  const isOldHi = (b) => b >= oldHi0 && b < oldHi1;
-  i = Math.max(0, codeEnd);
-  while (i < w.length) {
-    if (!isOldHi(w[i])) {
-      i += 1;
-      continue;
-    }
-    let j = i;
-    while (j < w.length && isOldHi(w[j])) j += 1;
-    if (j - i >= 3) {
-      for (let k = i; k < j; k++) {
-        w[k] = (w[k] + pageDelta) & 0xff;
-        marked[k] = 1;
-        stats.hi++;
-      }
-    }
-    i = j;
-  }
-
-  for (i = Math.max(0, codeEnd); i < w.length - 1; i++) {
-    if (marked[i] || marked[i + 1]) continue;
-    const addr = w[i] | (w[i + 1] << 8);
-    if (addr < dataBase || addr >= oldBase + WORK_SIZE) continue;
-    const neu = addr + delta;
-    w[i] = neu & 0xff;
-    w[i + 1] = (neu >> 8) & 0xff;
-    marked[i] = marked[i + 1] = 1;
-    stats.words++;
-  }
-
-  return { image: w, stats };
-}
-
-function patchPayload(payload, load) {
-  const p = Buffer.from(payload);
-  const fileEnd = load + p.length;
-  const stats = { bankNops: 0, ptrDst: 0, destAbs: 0, images: [] };
-
-  for (const pc of BANK_ZP_SITES) {
-    const off = pc - load;
-    if (p[off + 1] !== 0x01) {
-      throw new Error(
-        `Expected zp $01 at $${pc.toString(16)}: ${p.subarray(off, off + 2).toString("hex")}`,
-      );
-    }
-    p[off] = 0xea;
-    p[off + 1] = 0xea;
-    stats.bankNops++;
-  }
-
-  for (let slot = 0; slot < NUM_SLOTS; slot++) {
-    const off = PTR_TABLE - load + slot * 4 + 2;
-    const dst = p[off] | (p[off + 1] << 8);
-    const ok =
-      (dst >= 0x9000 && dst < 0xa000) ||
-      (dst >= 0xa000 && dst < 0xb100);
-    if (!ok) {
-      throw new Error(`Slot ${slot} dst $${dst.toString(16)} unexpected`);
-    }
-    p[off] = WORK_NEW & 0xff;
-    p[off + 1] = (WORK_NEW >> 8) & 0xff;
-    stats.ptrDst++;
-  }
-
-  for (const [pc, old] of DEST_ABS) {
-    const off = pc - load;
-    const cur = p[off + 1] | (p[off + 2] << 8);
-    if (p[off] !== 0x8d || cur !== old) {
-      throw new Error(
-        `STA mismatch at $${pc.toString(16)}: got $${cur.toString(16)}`,
-      );
-    }
-    const neu = WORK_NEW + (old - 0xa000);
-    p[off + 1] = neu & 0xff;
-    p[off + 2] = (neu >> 8) & 0xff;
-    stats.destAbs++;
-  }
-
-  for (const im of IMAGES) {
-    const srcOff = im.src - load;
-    const size = Math.min(WORK_SIZE, Math.max(0, fileEnd - im.src));
-    if (srcOff < 0 || size < 16) {
-      throw new Error(`Image at $${im.src.toString(16)} out of range`);
-    }
-    const { image, stats: rstats } = relocPlayerImage(
-      p.subarray(srcOff, srcOff + size),
-      im.old,
-      WORK_NEW,
-      im.codeEnd,
-    );
-    image.copy(p, srcOff);
-    stats.images.push({
-      src: im.src,
-      old: im.old,
-      ...rstats,
-    });
-  }
-
-  return { payload: p, stats };
-}
-
-function patch(relocatedSid) {
-  const { loadaddr, payload, header, loadInData } = parsePsid(
-    Buffer.from(relocatedSid),
-  );
-  const { payload: patched, stats } = patchPayload(payload, loadaddr);
-  const patchedSid = rebuildPsid(header, patched, { loadInData, loadaddr });
-  const end = WORK_NEW + WORK_SIZE - 1;
-  const img = stats.images
-    .map(
-      (im) =>
-        `$${im.src.toString(16)}: abs=${im.abs} words=${im.words} hi=${im.hi} sid=${im.sid}`,
-    )
-    .join(", ");
-  const summary =
-    `bank NOPs: ${stats.bankNops}, ptr dsts: ${stats.ptrDst}, ` +
-    `STA dests: ${stats.destAbs}\n` +
-    `images: ${img}\n` +
-    `work RAM $${WORK_NEW.toString(16)}-$${end.toString(16)}`;
-
-  return { patchedSid, stats, summary };
-}
+const BBCSID = Buffer.from(
+  [
+    "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",
+    "iADBgiQnKzDChADBgiQnK4YwwogAwYYigibChADBhCeIKcKIAMGGIoImwoQAwSeGKYInwoQAwSbB",
+    "hiSCJsKEAMGEJ4grwgDBhiSCH8KEAMEYwgCCAACEAIIAAP/OiGsMhBjNagzOhmsMzWoOhA/OiGsI",
+    "hBTNagPOhmsIzWoDhAjOiGsKhBbNagrOhmsPzWoOhArOhmsMzWoMhArOawzNagfOawXNagP//vTM",
+    "mGUngmIrbCtiK20roGAw/5hhLohkJoJiK2wrnGUn/5BhLmQyoGUz//7024Q80WIrbCttK2IrbCtl",
+    "J2QmYyeGbifilGEs24Q80W0pYylhLm0pYylwJmQmZSeGbyfilGUnsGMpiCmEZCakZSfPgiCEIIId",
+    "hB2CGoQaghiEFtCI/QQkAf/OiGsKhArNagXOhmsKzWoMhA7OiGsKhBbNagXOhmsKzWoMhA7OiGsM",
+    "hAzNagzOhmsPzWoOhArOhmsMzSTOhBjNE84WzRHOE//ShB8dHyAiIB8d/9KIHx8iHx8fIh//5NKI",
+    "HSAgHR0gIIQd/86IawfChADNgmoHB86EawcHwgDOB//+9NOYK4QpK6AnjCYioCSIK5guiDCMLSmI",
+    "Lf+goCv/oCvPghiEGIIYhBiCGIQYghWEEhAO/86GawjNagiEawjOiGoKzWoHzoZrDM1qDIRrDs5q",
+    "D80OawxqB86GawjNagiECM6IawrNagfOhgzNaw+Eag7OhmsMzWoKhGsH//7004ZhPDyEPIg+OoY+",
+    "mjyGPDyEP4g+QaD9GkFD/8uIYivChADLYiuIYynChADLiCmEZSfCAMsniCfChADLYyn//vTMmGUn",
+    "gmIrbCtiK20r/CigYDD/16AfkCkpoCT9hSQjH5ApKaAw/YcwL9agoCv//vLVoAwKCAcMCggH1qCg",
+    "G//415ApJ6ArmCaoI5ApJ6ArmDKQL9agoAz/8PD/AAD/TAqhTJOhTHuhAKAAjJShIC4gLiAuIJV0",
+    "aXRsZTqUIEdvbGRlbiBBeGUgICAglmF1dGhvcjqUIEplcm9lbiBUZWwgICAgIJNyZWxlYXNlOpQg",
+    "MTk5MCBQcm9iZSBTb2Z0d2FyZS9WaXJnaW4gICAgAA==",
+  ].join(""),
+  "base64",
+);
 
 export default {
   id: "golden-axe",
   title: "Golden Axe",
-  phase: "post",
+  phase: "replace",
   matchSha256: [
     // HVSC MUSICIANS/T/Tel_Jeroen/Golden_Axe.sid
     "c20e8eef9c9af543644defdf5d5daca48098336be85f208424dfc0ece76e0694",
-    // relocated -f -k --page 1A --sid-dest FC20
-    "1c7288c6611c384bd5211d0d66fdb1ff112e2ebafe089c0937693d0000e8c3fb",
   ],
-  patch,
+  patch() {
+    return {
+      bbcSid: Buffer.from(BBCSID),
+      summary: "listing replica, song 0 ($4000 / $FC20)",
+    };
+  },
 };

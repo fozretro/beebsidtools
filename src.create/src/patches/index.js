@@ -13,7 +13,10 @@ function normalize(patch, file) {
   }
   return {
     ...patch,
-    phase: patch.phase === "pre" ? "pre" : "post",
+    phase:
+      patch.phase === "pre" || patch.phase === "replace"
+        ? patch.phase
+        : "post",
     matchSha256: (patch.matchSha256 ?? []).map((h) => h.toLowerCase()),
     _file: file,
   };

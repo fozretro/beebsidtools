@@ -106,7 +106,58 @@ const bbcSid = Buffer.concat([
 
 assertTuneFitsRam(bbcSid, { name: "Golden_Axe" });
 writeFileSync(outPath, bbcSid);
+embedInCreate(bbcSid);
 const end = LOAD + bbcSid.length - 1;
 console.log(
   `wrote ${outPath} (${bbcSid.length} bytes, $${LOAD.toString(16)}–$${end.toString(16)}, copy $${SRC.toString(16)}→$${PLAYER.toString(16)}, init A=$${INIT_A.toString(16)} play $${PLAY.toString(16)})`,
 );
+
+const HVSC_SHA256 =
+  "c20e8eef9c9af543644defdf5d5daca48098336be85f208424dfc0ece76e0694";
+
+function embedInCreate(bbcSid) {
+  const b64 = bbcSid.toString("base64");
+  const lines = [];
+  for (let i = 0; i < b64.length; i += 76) {
+    lines.push(b64.slice(i, i + 76));
+  }
+  const patch = join(CREATE, "patches/golden-axe.js");
+  const golden = join(REPO, "src.create/test/golden/Golden_Axe.bbcsid");
+  writeFileSync(
+    patch,
+    `/**
+ * Golden Axe (Jeroen Tel) — listing-built song 0 .bbcsid.
+ *
+ * sidreloc plus a reloc walk cannot keep this packed player's poke lists
+ * locked to Hermit. Convert substitutes the assembled replica
+ * (\`src.sids/goldenaxe.bbcsid/\`). Song 0 only.
+ *
+ * Refresh: src.sids/goldenaxe.bbcsid/bin/build.sh
+ */
+const BBCSID = Buffer.from(
+  [
+${lines.map((l) => `    "${l}",`).join("\n")}
+  ].join(""),
+  "base64",
+);
+
+export default {
+  id: "golden-axe",
+  title: "Golden Axe",
+  phase: "replace",
+  matchSha256: [
+    // HVSC MUSICIANS/T/Tel_Jeroen/Golden_Axe.sid
+    "${HVSC_SHA256}",
+  ],
+  patch() {
+    return {
+      bbcSid: Buffer.from(BBCSID),
+      summary: "listing replica, song 0 ($4000 / $FC20)",
+    };
+  },
+};
+`,
+  );
+  writeFileSync(golden, bbcSid);
+  console.log(`embedded ${patch} and ${golden}`);
+}

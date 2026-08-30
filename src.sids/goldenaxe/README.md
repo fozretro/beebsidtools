@@ -43,5 +43,6 @@ node src.sids/goldenaxe/bin/compare.mjs                  # 50 Hz snapshots
 `--rebuild` on the Beeb trace to convert again. WAV sidecars: `out/c64.wav`,
 `out/beeb.wav`. Use `--no-wav` when you only need the poke JSON.
 
-A listing-built SIDPLAY image (no convert/patcher) is
-[`../goldenaxe.bbcsid/`](../goldenaxe.bbcsid/).
+Convert uses the listing-built SIDPLAY image in
+[`../goldenaxe.bbcsid/`](../goldenaxe.bbcsid/) (song 0). `trace-beeb.mjs`
+without `--ssd` now packs through that substitute.

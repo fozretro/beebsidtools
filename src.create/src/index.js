@@ -86,14 +86,9 @@ export { parsePsid } from "./lib/psid.js";
 export { parseBrkList } from "./lib/brk.js";
 
 import { runPipeline, createContext } from "./pipeline.js";
-import { relocateStage } from "./stages/relocate.js";
-import { prePatchStage, postPatchStage } from "./stages/patch.js";
-import { ripStage } from "./stages/rip.js";
 import { convertTunesStage } from "./stages/convertTunes.js";
 import { packSsdStage } from "./stages/ssd.js";
-import { sha256Hex } from "./lib/patchRegistry.js";
-import { SIDPELK_LOAD, SIDPLAY_LOAD, assertTuneFitsRam } from "./lib/tuneRam.js";
-import { rsidNeedsManualPatch } from "./lib/rsid.js";
+import { SIDPELK_LOAD, SIDPLAY_LOAD } from "./lib/tuneRam.js";
 
 /**
  * @param {Buffer|Uint8Array|{sid:Buffer|Uint8Array,baseName?:string,title?:string,patch?:true|string|false,dfsName?:string}|Array} inputs
@@ -121,7 +116,7 @@ export function normalizeSidInputs(inputs) {
 }
 
 /**
- * Convert a SID buffer through relocate → optional patch → rip (in-memory).
+ * Convert a SID buffer (replace replica, or relocate → optional patch → rip).
  *
  * @param {Buffer|Uint8Array} inputSid
  * @param {object} [opts]
@@ -131,40 +126,25 @@ export function normalizeSidInputs(inputs) {
  */
 export async function convertSid(inputSid, opts = {}) {
   const baseName = opts.baseName ?? "tune";
-  const buf = Buffer.from(inputSid);
-  const rsidMsg = rsidNeedsManualPatch(buf, {
-    name: baseName,
-    patch: opts.patch ?? true,
-  });
-  if (rsidMsg) throw new Error(rsidMsg);
-  const ctx = await runPipeline(
-    [
-      prePatchStage({ patch: opts.patch ?? true }),
-      relocateStage({ reloc: opts.reloc }),
-      postPatchStage({ patch: opts.patch ?? true }),
-      ripStage(),
-    ],
-    createContext({
-      baseName,
-      inputSid: buf,
-      meta: { inputSha256: sha256Hex(buf) },
-    }),
+  const { tunes, log } = await convertSids(
+    [{ sid: inputSid, baseName, patch: opts.patch }],
+    opts,
   );
-  assertTuneFitsRam(ctx.bbcSid, { name: baseName });
+  const t = tunes[0];
   return {
-    relSid: ctx.relSid,
-    brkText: ctx.brkText,
-    relocErr: ctx.relocErr,
-    patchedSid: ctx.patchedSid,
-    bbcSid: ctx.bbcSid,
-    vars: ctx.vars,
-    log: ctx.log,
-    meta: ctx.meta,
+    relSid: t.relSid,
+    brkText: t.brkText,
+    relocErr: t.relocErr,
+    patchedSid: t.patchedSid,
+    bbcSid: t.bbcSid,
+    vars: t.vars,
+    log,
+    meta: t.meta ?? {},
   };
 }
 
 /**
- * Convert one or more SIDs (relocate → patch → rip). No SSD packing.
+ * Convert one or more SIDs. No SSD packing.
  *
  * @param {Parameters<typeof normalizeSidInputs>[0]} inputs
  * @param {object} [opts]

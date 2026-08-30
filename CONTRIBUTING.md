@@ -46,6 +46,7 @@ scripts/ensure.cmd     first-run install for the Windows launchers
 
 ```text
 .sid
+  │  replace patch (optional, by hash) → .bbcsid
   │  pre-patch (optional, by hash)
   ▼
 relocate → .rel.sid + .brk
@@ -158,11 +159,12 @@ const { ssd, tunes } = await createSsd([sidA, sidB], {
 
 | File | When |
 |------|------|
-| `<base>.rel.sid` | always |
-| `<base>.brk` / `<base>.err` | always |
-| `<base>.patched.sid` | if a patch applied |
+| `<base>.rel.sid` | reloc path |
+| `<base>.brk` / `<base>.err` | reloc path |
+| `<base>.patched.sid` | if a pre/post patch applied |
 | `<base>.bbcsid` | always |
-| `<base>.vars` | always |
+| `<base>.vars` | reloc path |
 
-Patches may run pre-relocate (e.g. RoboCop play-address) and/or post-relocate
+Patches may run as a `.bbcsid` substitute (Golden Axe listing, song 0),
+pre-relocate (e.g. RoboCop play-address), and/or post-relocate
 (HOH / RoboCop 3 hardware fixes). List them with `./create patches`.

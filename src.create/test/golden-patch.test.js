@@ -11,6 +11,7 @@ import {
   resolvePatch,
   sha256Hex,
 } from "../src/lib/patchRegistry.js";
+import { convertSid } from "../src/index.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN = join(HERE, "golden");
@@ -64,21 +65,27 @@ test("patch auto-select by original SID hash: Head Over Heels", async () => {
 
 test("patch auto-select by original SID hash: Golden Axe", async () => {
   const orig = join(GOLDEN, "Golden_Axe.sid");
-  const rel = join(GOLDEN, "Golden_Axe.rel.sid");
-  const golden = join(GOLDEN, "Golden_Axe.patched.sid");
-  assert.ok(existsSync(orig) && existsSync(rel) && existsSync(golden));
+  const golden = join(GOLDEN, "Golden_Axe.bbcsid");
+  assert.ok(existsSync(orig) && existsSync(golden));
 
   const patches = getPatches();
   const selected = resolvePatch({
     patches,
     patchFlag: true,
     inputSha256: sha256Hex(readFileSync(orig)),
-    phase: "post",
+    phase: "replace",
   });
   assert.equal(selected.id, "golden-axe");
+  assert.equal(selected.phase, "replace");
 
-  const { patchedSid } = selected.patch(readFileSync(rel));
-  assert.ok(Buffer.from(patchedSid).equals(readFileSync(golden)));
+  const { bbcSid } = selected.patch(readFileSync(orig));
+  assert.ok(Buffer.from(bbcSid).equals(readFileSync(golden)));
+
+  const converted = await convertSid(readFileSync(orig), {
+    baseName: "Golden_Axe",
+  });
+  assert.equal(converted.meta.patchPhase, "replace");
+  assert.ok(converted.bbcSid.equals(readFileSync(golden)));
 });
 
 test("patch auto-select by relocated hash: RoboCop 3", async () => {

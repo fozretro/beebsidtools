@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * Retarget src.sids/goldenaxe/src/player.asm: org $4000, SID $FC20.
- * Pointer pages in EQUB stay $9x — reloc-data.mjs rewrites those after assemble
- * (same hi/word pass as the convert patch’s data half).
+ * Pointer pages in EQUB stay $9x — reloc-data.mjs rewrites those after assemble.
  */
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";

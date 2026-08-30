@@ -56,7 +56,7 @@ src.app/               BeebSID Disc Creator (Vite/React)
 
 ### create
 
-In-memory stages: `pre-patch → relocate → post-patch → rip`, then `pack-ssd`, optional `preview-ssd`.
+In-memory stages: `pre-patch → relocate → post-patch → rip`, then `pack-ssd`, optional `preview-ssd`. A **replace** patch (Golden Axe) supplies a listing `.bbcsid` and skips relocate/rip.
 
 - **API:** `convertSid` / `convertSids` / `createSsd` / `runPipeline`
 - **CLI:** only filesystem boundary (read `.sid`, write convert outputs — see below)
@@ -79,7 +79,7 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 pre-patch → relocate → post-patch → rip
 ```
 
-A hash-selected patch may run **before** relocate (mutate the original SID; may set `relocOpts`) or **after** (mutate the relocated SID). `--no-patch` skips both but still relocates and rips. Relocate writes `.rel.sid`, `.brk`, and `.err`. Rip writes `.bbcsid` and `.vars`. `.patched.sid` appears only when a patch actually ran.
+A hash-selected patch may run **before** relocate (mutate the original SID; may set `relocOpts`), **replace** the convert path with a listing `.bbcsid` (Golden Axe song 0), or **after** relocate (mutate the relocated SID). `--no-patch` skips all three but still relocates and rips. Relocate writes `.rel.sid`, `.brk`, and `.err`. Rip writes `.bbcsid` and `.vars`. `.patched.sid` appears only when a pre/post patch actually ran.
 
 `./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--record-audio`). A tune that fails relocate, rip, or the RAM budget is **skipped** (warning in the log) and the disc still packs. Unpatched **RSID** files are skipped the same way (`RSID — needs a manual patch`); a hash patch (RoboCop) is required before SIDPLAY can call play. `./create convert` still **fails** on the first bad tune. If every tune is skipped, pack fails.
 
@@ -89,7 +89,7 @@ A hash-selected patch may run **before** relocate (mutate the original SID; may 
 | `<stem>.rel.sid` | sidreloc | Rip; goldens | Relocated PSID (load `$1A00`, SID pokes `$FC20`) |
 | `<stem>.brk` | sidreloc | Rip; goldens | `----DOM:BRK:<offset>:<opcode>` list of SID **store** sites; ripsid turns these into dual-write / GATE_PULSE trampolines |
 | `<stem>.err` | sidreloc stderr | Humans (debug) | Analysis + **verify**: original `$D400` vs relocated `$FC20` SID shadow. `force: true` logs mismatches instead of aborting. Pitch/pulse-width diffs are counted; filter/volume/control diffs print `Wrong SID state!`. The address in that line is **dest page + register index** (C64 `$d418` style), not `$FC20+index` — register `$18` (mode/volume) is `$FC38` on BeebSID, printed as `$fc18`. Huge `.err` files (e.g. RoboCop subtunes 6–7) are usually one volume off-by-one repeated every play frame. |
-| `<stem>.bbcsid` | ripsid | Pack SSD / SIDPLAY | BBC load image — see **`.bbcsid` layout** below |
+| `<stem>.bbcsid` | ripsid, or a replace patch | Pack SSD / SIDPLAY | BBC load image — see **`.bbcsid` layout** below |
 | `<stem>.vars` | ripsid | Humans (debug) | Text log of trampoline layout / addresses |
 
 ### `.bbcsid` layout
