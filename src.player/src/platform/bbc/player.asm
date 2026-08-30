@@ -1897,8 +1897,11 @@ KEY_DOWN_MASK   = $80
                 rts
 
 
-; Double-height "A AUTO" in the SIDPLAY header gap.
+; Double-height "A AUTO" and product version over the old "bcdef" art.
 }
+
+INCLUDE "../../../out/version.asm"
+
 .show_menu_hint
 {
                 ldx     #0
@@ -1909,6 +1912,14 @@ KEY_DOWN_MASK   = $80
                 inx
                 cpx     #6
                 bne     lp
+                ldx     #0
+.lpv
+                lda     version_str, x
+                sta     $7C00 + 1 * 40 + 31, x
+                sta     $7C00 + 2 * 40 + 31, x
+                inx
+                cpx     #VERSION_LEN
+                bne     lpv
                 rts
 .auto_hint
                 EQUS    "A AUTO"
@@ -1996,7 +2007,7 @@ KEY_DOWN_MASK   = $80
 }
 .menu
 {
-        SKIP 1261      ; menu space 1 byte contains number of tunes followed by 10 chars of filename
+        SKIP 1261      ; count, 42-byte entries, uint16 times, BSMN+format trailer
 
 
 

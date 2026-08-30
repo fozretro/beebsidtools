@@ -27,7 +27,7 @@ const HELP_TEXT = [
   "BeebSID Disc Creator",
   "",
   ...formatColumns([
-    ["f1 Create Disc", "f2 Download Disc", "f3 Test Disc"],
+    ["f1 Create Disc", "f2 Download Disc", "f3 Test Disc (or load .ssd)"],
     ["f5 Clear list", "f6/f7 Move selected", "f8 Remove selected"],
     ["f9 Credits", "f0 Help"],
   ]),
@@ -37,6 +37,9 @@ const HELP_TEXT = [
   "Play starts the SID default song; , / . or ‹ › step through songs.",
   "SIDPLAY: Return plays, A auto-plays each default song then the next,",
   "Return while playing skips, Escape returns to the menu.",
+  "f3 Test Disc boots the disc you just created, or Load disc / drop an .ssd.",
+  "Upgrade puts the current player on that disc and adds play times if missing, then reboots.",
+  "Upgrade is off when the disc is already current. Save Disc downloads the loaded .ssd.",
   "Index stays in this browser. Play listens with Hermit jsSID.",
   "",
   `BeebSID Tools v${TOOLS_VERSION}`,
@@ -124,7 +127,6 @@ export default function App() {
   const fileInputRef = useRef(null);
 
   async function onLivePreview() {
-    if (!result?.ssd) return;
     const ctx = new AudioContext();
     await ctx.resume();
     setLiveAudioCtx(ctx);
@@ -335,7 +337,7 @@ export default function App() {
     {
       id: "f3",
       label: "Test Disc",
-      disabled: !result?.ssd || busy || liveOpen,
+      disabled: busy || liveOpen,
       run: onLivePreview,
     },
     {

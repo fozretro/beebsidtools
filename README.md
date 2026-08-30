@@ -74,6 +74,10 @@ Sample tunes are in `sids/`. On Windows, use `.\create.cmd` in place of `./creat
 
 # Convert only (no disc) — writes BeebSID files next to -o
 ./create convert sids/Cybernoid.sid -o ~/Desktop/cyber
+
+# Put the current player on an existing disc (overwrites unless -o)
+./create upgrade ~/Desktop/hoh.ssd
+./create upgrade old.ssd -o ~/Desktop/hoh-new.ssd
 ```
 
 ```bat

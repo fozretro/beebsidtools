@@ -19,6 +19,11 @@ export { ripSid } from "./lib/ripsid.js";
 export { relocateSid } from "./lib/sidreloc/index.js";
 export { packBeebSidSsd, SSD_ADDR } from "./lib/ssd.js";
 export {
+  upgradeBeebSidSsd,
+  describeBeebSidUpgrade,
+  upgradeNeeded,
+} from "./lib/upgradeSsd.js";
+export {
   TUNE_LOAD,
   SIDPLAY_LOAD,
   SIDPELK_LOAD,
@@ -37,6 +42,12 @@ export {
   DEFAULT_PLAY_SECONDS,
   MENU_BUF_SIZE,
   MENU_ENTRY_SIZE,
+  MENU_MAGIC,
+  MENU_FORMAT,
+  MENU_TRAILER_SIZE,
+  menuTrailer,
+  inspectMenu,
+  upgradeMenu,
 } from "./lib/menu.js";
 export {
   parseSonglengthsMd5,
@@ -57,6 +68,8 @@ export {
   setTitle,
   setOpt4,
   toBuffer,
+  openDisc,
+  rebuildDisc,
   DFS,
 } from "./lib/dfs.js";
 export {

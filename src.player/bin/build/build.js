@@ -57,6 +57,16 @@ writeMode7RleAsm(
 );
 console.log("Generated out/play_screen.asm out/menu_screen.asm from Mode 7 .bin");
 
+const toolsVersion = JSON.parse(
+  readFileSync(join(ROOT, "../package.json"), "utf8"),
+).version;
+const verShown = String(toolsVersion).slice(0, 5).padEnd(5, " ");
+writeFileSync(
+  join(OUT, "version.asm"),
+  `.version_str\n        EQUS    "${verShown}"\nVERSION_LEN = ${verShown.length}\n`,
+);
+console.log(`Generated out/version.asm (${verShown.trim()})`);
+
 const targets = [
   { name: "sidpl", dir: BBC, asm: "player.asm" },
   { name: "sidpelk", dir: ELK, asm: "player.asm" },

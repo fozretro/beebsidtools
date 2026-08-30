@@ -136,7 +136,9 @@ test("buildMenu appends uint16 LE play-seconds", () => {
     { dfsName: "S.01CYBER", title: "Cybernoid" },
   ]);
   assert.equal(menu[0], 2);
-  assert.equal(menu.length, 1 + 42 * 2 + 4);
+  assert.equal(menu.length, 1 + 42 * 2 + 4 + 5);
   assert.equal(menu.readUInt16LE(1 + 84), 165);
   assert.equal(menu.readUInt16LE(1 + 84 + 2), DEFAULT_PLAY_SECONDS);
+  assert.equal(menu.subarray(89, 93).toString("ascii"), "BSMN");
+  assert.equal(menu[93], 1);
 });

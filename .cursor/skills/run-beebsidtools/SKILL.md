@@ -38,6 +38,7 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 ./create ssd ~/HVSC/C64Music/MUSICIANS/H/Hubbard_Rob/Commando.sid \
   -o /tmp/commando.ssd --no-preview   # auto-finds DOCUMENTS/Songlengths.md5
 ./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --record-audio
+./create upgrade /tmp/cyber.ssd -o /tmp/cyber-new.ssd
 ./create patches
 ```
 

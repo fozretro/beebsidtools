@@ -144,6 +144,95 @@ export function toBuffer(disc) {
   return Buffer.from(disc.image);
 }
 
+function dfsDisplayName(dir, name) {
+  const n = name.replace(/ +$/, "");
+  return dir === "$" ? n : `${dir}.${n}`;
+}
+
+/**
+ * Read a DFS SSD image (catalogue + file bytes).
+ * @param {Buffer|Uint8Array} image
+ */
+export function openDisc(image) {
+  const buf = Buffer.from(image);
+  if (buf.length < SECTOR * 2) throw new Error("SSD is too small to be DFS");
+  const sectors = ((buf[SECTOR + 6] & 0x03) << 8) | buf[SECTOR + 7];
+  const cat = buf[SECTOR + 5] >> 3;
+  if (cat > MAX_FILES) throw new Error(`DFS catalogue count ${cat} > 31`);
+  const files = [];
+  for (let i = 0; i < cat; i++) {
+    const nameOff = 8 + i * 8;
+    const addrOff = SECTOR + 8 + i * 8;
+    const name = String.fromCharCode(
+      ...buf.subarray(nameOff, nameOff + 7),
+    ).replace(/ +$/, "");
+    const dirByte = buf[nameOff + 7];
+    const dir = String.fromCharCode(dirByte & 0x7f);
+    const extra = buf[addrOff + 6];
+    const load =
+      buf[addrOff] | (buf[addrOff + 1] << 8) | ((extra & 0x0c) << 14);
+    const exec =
+      buf[addrOff + 2] | (buf[addrOff + 3] << 8) | ((extra & 0xc0) << 10);
+    const len =
+      buf[addrOff + 4] | (buf[addrOff + 5] << 8) | ((extra & 0x30) << 12);
+    const sec = buf[addrOff + 7] | ((extra & 0x03) << 8);
+    const start = sec * SECTOR;
+    if (start + len > buf.length) {
+      throw new Error(`DFS file ${dir}.${name} runs past the image`);
+    }
+    files.push({
+      dir,
+      name,
+      dfsName: dfsDisplayName(dir, name),
+      load,
+      exec,
+      len,
+      sec,
+      locked: !!(dirByte & 0x80),
+      data: Buffer.from(buf.subarray(start, start + len)),
+    });
+  }
+  const title = (
+    buf.subarray(0, 8).toString("ascii") +
+    buf.subarray(SECTOR, SECTOR + 4).toString("ascii")
+  ).replace(/ +$/, "");
+  return {
+    image: buf,
+    sectors: sectors || Math.floor(buf.length / SECTOR),
+    title,
+    opt4: (buf[SECTOR + 6] >> 4) & 3,
+    files,
+  };
+}
+
+/**
+ * Rebuild a disc from openDisc(), optionally replacing files by dfsName.
+ * Files are written in original sector order.
+ *
+ * @param {ReturnType<typeof openDisc>} parsed
+ * @param {Map<string, Buffer|Uint8Array>|Record<string, Buffer|Uint8Array>} [replacements]
+ */
+export function rebuildDisc(parsed, replacements = {}) {
+  const map =
+    replacements instanceof Map
+      ? replacements
+      : new Map(Object.entries(replacements));
+  const tracks = parsed.sectors % 10 === 0 ? parsed.sectors / 10 : 80;
+  const disc = createDisc(tracks);
+  const ordered = [...parsed.files].sort((a, b) => a.sec - b.sec);
+  for (const f of ordered) {
+    const next = map.get(f.dfsName) ?? map.get(f.dfsName.toUpperCase());
+    addFile(disc, f.dfsName, next ?? f.data, {
+      load: f.load,
+      exec: f.exec,
+      locked: f.locked,
+    });
+  }
+  setTitle(disc, parsed.title);
+  setOpt4(disc, parsed.opt4);
+  return disc;
+}
+
 export const DFS = {
   SECTOR,
   MAX_FILES,
@@ -152,4 +241,6 @@ export const DFS = {
   setTitle,
   setOpt4,
   toBuffer,
+  openDisc,
+  rebuildDisc,
 };
