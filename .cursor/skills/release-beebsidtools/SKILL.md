@@ -93,27 +93,38 @@ Work from the repo root. `X.Y.Z` is the version being cut (e.g. `0.2.0`).
 
 1. **Finish the work** on the feature / version branch. Run `npm test` or
    `npm run test:fast` if anything landed that is not already green.
-2. **Notes** — draft `releases/X.Y.Z.md` with the rules above; stop for
+2. **Upgrade `discs/`** — put the current player (and menu format 1 / play
+   times if missing) on every sample SSD. In place, no extra outputs:
+
+   ```bash
+   for f in discs/*.ssd; do ./create upgrade "$f"; done
+   ```
+
+   Convert leftovers belong in `out/` (gitignored), never next to these
+   `.ssd` files. Commit discs that changed. “already current” on all of
+   them is fine — still run the loop so a player bump cannot ship with
+   stale samples.
+3. **Notes** — draft `releases/X.Y.Z.md` with the rules above; stop for
    review before bumping.
-3. **Bump** — set root `package.json` `"version"` to `X.Y.Z`.
-4. **Sync** — `npm run sync-versions` (must reprint all three targets).
-5. **Commit** on the current branch (notes + four `package.json` files).
+4. **Bump** — set root `package.json` `"version"` to `X.Y.Z`.
+5. **Sync** — `npm run sync-versions` (must reprint all three targets).
+6. **Commit** on the current branch (notes + four `package.json` files).
    Message like `Release X.Y.Z.` — why, not a file list.
-6. **Push the branch** — `git push -u origin HEAD` if untracked, else
+7. **Push the branch** — `git push -u origin HEAD` if untracked, else
    `git push`.
-7. **PR into `main`** — `gh pr create` (title + why). Do not target the
+8. **PR into `main`** — `gh pr create` (title + why). Do not target the
    version branch as the base.
-8. **Merge** when CI is green and the user wants it shipped
+9. **Merge** when CI is green and the user wants it shipped
    (`gh pr merge` or GitHub UI).
-9. **Update local `main`** — `git checkout main && git pull`.
-10. **Publish** — on that `main` commit, `npm run publish-release`
+10. **Update local `main`** — `git checkout main && git pull`.
+11. **Publish** — on that `main` commit, `npm run publish-release`
     (`gh release create vX.Y.Z --title "BeebSID Tools X.Y.Z" --notes-file
     releases/X.Y.Z.md`).
-11. **Pages** — the merge already queued the workflow. Confirm Actions if
+12. **Pages** — the merge already queued the workflow. Confirm Actions if
     asked. No extra deploy command.
-12. **Delete the feature branch** if the user wants it gone.
+13. **Delete the feature branch** if the user wants it gone.
 
-Bumping after merge is fine: do steps 2–5 on `main` after step 9, push, then
+Bumping after merge is fine: do steps 3–6 on `main` after step 10, push, then
 publish. Same end state. Do **not** run `publish-release` from an unmerged
 branch — the tag would exist while Pages still served the previous `main`.
 
@@ -131,6 +142,7 @@ then tag from the commit that actually landed on `main`.
 - Skip hooks (`--no-verify`)
 - Publish before the version commit is on `origin/main`
 - Jump to `1.0.0` because the number feels ready
+- Ship a player or menu-format change without upgrading `discs/*.ssd`
 
 ## More context
 
@@ -138,3 +150,4 @@ then tag from the commit that actually landed on `main`.
 - Human summary: [`CONTRIBUTING.md`](../../CONTRIBUTING.md) (Releases)
 - Scripts: `scripts/sync-versions.js`, `scripts/publish-release.js`
 - Help wiring: `src.app/src/releaseNotes.js`, `src.app/src/versions.js`
+- Menu / `create upgrade` lockstep: `../upgrade-beebsid-disc/SKILL.md`

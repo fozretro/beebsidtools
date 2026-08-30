@@ -42,6 +42,9 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 ./create patches
 ```
 
+Menu layout (`M.MENU`, `BSMN`, times) and `create upgrade` stay in lockstep —
+see `upgrade-beebsid-disc`. Convert leftovers go in `out/`, not `discs/`.
+
 - SSD create runs headless preview by default (`menu.png`; optional WAVs with `--record-audio`).
 - Preview host for CLI: `preview/node` (injected inside CLI via `createSsd`).
 - Equivalent: `npm run create -- convert …`
