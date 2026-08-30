@@ -8,6 +8,9 @@ hash matches (`src.create/src/patches/golden-axe.js`).
 pointer high bytes (`$9x` → `$4x`). A word scan must not run: it treated
 `L996B` pitch `$95,$9B` as address `$9B95` and the 60 s lists diverged.
 
+SID stores in the 4K become JSR trampolines after the image (`$2A30`) so
+SIDPLAY’s `$0720` shadow (bars / poke line) stays in sync with `$FC20`.
+
 The 4K is assembled for `$4000` but stored at `$1A30`. Init at `$1A00`
 copies it to `$4000` (OSFILE does not load a DFS file through `$4000`),
 then `LDA #$01 / JMP $4000` — the HVSC stub calls the player with

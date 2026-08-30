@@ -33,6 +33,12 @@ const PLAY = 0x4003;
 const STUB_INIT = 0x1a00;
 const INIT_A = 0x01;
 const SRC = 0x1a30;
+const HVSC_SHA256 =
+  "c20e8eef9c9af543644defdf5d5daca48098336be85f208424dfc0ece76e0694";
+const SID_BASE = 0xfc20;
+const SID_SHADOW = 0x0720;
+const GATE_PULSE = 0x0740;
+const STORE_OPS = new Set([0x8c, 0x8d, 0x8e, 0x99, 0x9d]);
 
 const player = readFileSync(playerPath);
 if (player.length !== 0x1000) {
@@ -81,12 +87,18 @@ if (stub.length > SRC - PAYLOAD) {
   throw new Error(`stub ${stub.length} bytes; SRC needs >= ${stub.length} gap`);
 }
 
+const stubBase = SRC + player.length;
+const ripped = trampolineSidStores(player, stubBase);
+if (ripped.count === 0) {
+  throw new Error("no $FC20 stores in player.bin — bars would stay blank");
+}
+
 const header = Buffer.alloc(8);
 header.writeUInt16LE(STUB_INIT, 0);
 header.writeUInt16LE(PLAY, 2);
 header[4] = 1;
 header[5] = 1;
-const brktab = SRC + player.length;
+const brktab = stubBase + ripped.stubs.length;
 header.writeUInt16LE(brktab, 6);
 
 const gap = Buffer.alloc(SRC - PAYLOAD, 0);
@@ -99,7 +111,8 @@ const trailer =
 const bbcSid = Buffer.concat([
   header,
   gap,
-  player,
+  ripped.image,
+  ripped.stubs,
   Buffer.from(trailer, "latin1"),
   Buffer.from([0]),
 ]);
@@ -109,11 +122,8 @@ writeFileSync(outPath, bbcSid);
 embedInCreate(bbcSid);
 const end = LOAD + bbcSid.length - 1;
 console.log(
-  `wrote ${outPath} (${bbcSid.length} bytes, $${LOAD.toString(16)}–$${end.toString(16)}, copy $${SRC.toString(16)}→$${PLAYER.toString(16)}, init A=$${INIT_A.toString(16)} play $${PLAY.toString(16)})`,
+  `wrote ${outPath} (${bbcSid.length} bytes, $${LOAD.toString(16)}–$${end.toString(16)}, copy $${SRC.toString(16)}→$${PLAYER.toString(16)}, init A=$${INIT_A.toString(16)} play $${PLAY.toString(16)}, ${ripped.count} SID trampolines)`,
 );
-
-const HVSC_SHA256 =
-  "c20e8eef9c9af543644defdf5d5daca48098336be85f208424dfc0ece76e0694";
 
 function embedInCreate(bbcSid) {
   const b64 = bbcSid.toString("base64");
@@ -160,4 +170,49 @@ export default {
   );
   writeFileSync(golden, bbcSid);
   console.log(`embedded ${patch} and ${golden}`);
+}
+
+/** Same dual-write / GATE_PULSE stubs as ripsid, for this listing image. */
+function trampolineSidStores(image, stubBase) {
+  const code = Buffer.from(image);
+  const entries = [];
+  for (let i = 0; i < code.length - 2; ) {
+    const opcode = code[i];
+    const op1 = code[i + 1];
+    const op2 = code[i + 2];
+    const addr = op1 | (op2 << 8);
+    if (STORE_OPS.has(opcode) && addr >= SID_BASE && addr <= SID_BASE + 0x1f) {
+      entries.push({ opcode, op1, op2, off: i, addr });
+      i += 3;
+      continue;
+    }
+    i += 1;
+  }
+
+  let brkaddr = stubBase;
+  const stubs = [];
+  for (const e of entries) {
+    const reg = e.addr - SID_BASE;
+    const voice = reg === 4 ? 0 : reg === 11 ? 1 : reg === 18 ? 2 : -1;
+    const size = voice >= 0 ? 22 : 8;
+    const sh = SID_SHADOW + reg;
+    const out = [e.opcode, sh & 0xff, sh >> 8, e.opcode, e.op1, e.op2];
+    if (voice >= 0) {
+      const pulse = GATE_PULSE + voice;
+      out.push(0x08, 0x48);
+      if (e.opcode === 0x8e) out.push(0x8a);
+      else if (e.opcode === 0x8c) out.push(0x98);
+      out.push(0x29, 0x01, 0xd0, 0x05, 0xa9, 0x01, 0x8d, pulse & 0xff, pulse >> 8);
+      out.push(0x68, 0x28);
+    }
+    out.push(0x60);
+    while (out.length < size) out.push(0);
+
+    code[e.off] = 0x20;
+    code[e.off + 1] = brkaddr & 0xff;
+    code[e.off + 2] = (brkaddr >> 8) & 0xff;
+    stubs.push(Buffer.from(out));
+    brkaddr = (brkaddr + size) & 0xffff;
+  }
+  return { image: code, stubs: Buffer.concat(stubs), count: entries.length };
 }

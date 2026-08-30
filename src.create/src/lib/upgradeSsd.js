@@ -17,6 +17,26 @@ function findFile(parsed, want) {
 }
 
 /**
+ * @param {Buffer|Uint8Array} ssd
+ * @returns {string|null} error, or null if SIDPLAY + M.MENU are present
+ */
+export function beebSidSsdError(ssd) {
+  try {
+    const parsed = openDisc(ssd);
+    if (!findFile(parsed, "SIDPLAY")) return "Not a BeebSID disc (no SIDPLAY)";
+    if (!findFile(parsed, "M.MENU")) return "Not a BeebSID disc (no M.MENU)";
+    return null;
+  } catch (err) {
+    return err instanceof Error ? err.message : "Not a BeebSID disc";
+  }
+}
+
+/** @param {Buffer|Uint8Array} ssd */
+export function isBeebSidSsd(ssd) {
+  return beebSidSsdError(ssd) == null;
+}
+
+/**
  * @typedef {{
  *   player: boolean,
  *   sidpelk: boolean,

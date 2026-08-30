@@ -17,6 +17,8 @@ import {
   upgradeBeebSidSsd,
   upgradeMenu,
   upgradeNeeded,
+  beebSidSsdError,
+  isBeebSidSsd,
 } from "../src/index.js";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -125,4 +127,12 @@ test("freshly packed disc does not need upgrade", () => {
   });
   const report = describeBeebSidUpgrade(ssd, { sidplay, hex });
   assert.equal(upgradeNeeded(report), false);
+  assert.equal(isBeebSidSsd(ssd), true);
+  assert.equal(beebSidSsdError(ssd), null);
+});
+
+test("beebSidSsdError rejects a non-BeebSID image", () => {
+  const junk = Buffer.alloc(512, 0);
+  assert.equal(isBeebSidSsd(junk), false);
+  assert.ok(beebSidSsdError(junk));
 });

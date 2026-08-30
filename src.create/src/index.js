@@ -22,6 +22,8 @@ export {
   upgradeBeebSidSsd,
   describeBeebSidUpgrade,
   upgradeNeeded,
+  beebSidSsdError,
+  isBeebSidSsd,
 } from "./lib/upgradeSsd.js";
 export {
   TUNE_LOAD,

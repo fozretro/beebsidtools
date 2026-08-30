@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  beebSidSsdError,
   describeBeebSidUpgrade,
   upgradeBeebSidSsd,
   upgradeNeeded,
@@ -29,6 +30,7 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
   const [dragOver, setDragOver] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [canUpgrade, setCanUpgrade] = useState(false);
+  const [alertText, setAlertText] = useState("");
   const assetsRef = useRef(null);
   const handleRef = useRef(null);
 
@@ -47,6 +49,7 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
       setStatusErr(false);
       setDragOver(false);
       setCanUpgrade(false);
+      setAlertText("");
       return;
     }
     if (ssd) {
@@ -62,11 +65,15 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
 
   async function loadFile(file) {
     if (!file || !isSsdName(file.name)) {
-      setStatus("Choose an .ssd disc image");
-      setStatusErr(true);
+      setAlertText("Choose an .ssd disc image.");
       return;
     }
     const bytes = new Uint8Array(await file.arrayBuffer());
+    const bad = beebSidSsdError(bytes);
+    if (bad) {
+      setAlertText(bad);
+      return;
+    }
     setDisc(bytes);
     setDiscName(file.name);
     setStatusErr(false);
@@ -299,10 +306,7 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
                 isSsdName(f.name),
               );
               if (file) void loadFile(file);
-              else {
-                setStatus("Drop an .ssd disc image");
-                setStatusErr(true);
-              }
+              else setAlertText("Drop an .ssd disc image.");
             }}
           >
             {disc ? (
@@ -325,6 +329,32 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
             )}
           </div>
         </div>
+        {alertText ? (
+          <div
+            className="live-alert-backdrop"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setAlertText("");
+            }}
+          >
+            <div
+              className="live-alert"
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="live-alert-title"
+            >
+              <h3 id="live-alert-title">Cannot load disc</h3>
+              <p>{alertText}</p>
+              <button
+                type="button"
+                className="file-btn"
+                onClick={() => setAlertText("")}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
