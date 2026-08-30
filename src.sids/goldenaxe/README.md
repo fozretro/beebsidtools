@@ -24,3 +24,24 @@ BEEBASM=/path/to/beebasm src.sids/goldenaxe/bin/build.sh
 `beebasm` must be on `PATH`, or set `BEEBASM`. Success prints two `OK` lines:
 `out/player.bin` matches the 4K slice at file `$10F0`, and
 `out/Golden_Axe.sid` matches `original/Golden_Axe.sid`.
+
+## SID traces (C64 vs BeebSID)
+
+50 Hz snapshots of the 25 SID registers, plus every store during each
+`play()` (`$FC20+r` stored as the same register index as `$D400+r`).
+Writes under `out/` (gitignored). Hermit plays the original; jsbeeb plays
+the converted disc.
+
+```bash
+node src.sids/goldenaxe/bin/trace-c64.mjs --seconds 8
+node src.sids/goldenaxe/bin/trace-beeb.mjs --seconds 8   # converts once → out/goldenaxe-beeb.ssd
+node src.sids/goldenaxe/bin/compare-pokes.mjs            # per-play poke lists
+node src.sids/goldenaxe/bin/compare.mjs                  # 50 Hz snapshots
+```
+
+`--skip=25` (default) ignores the first 0.5 s in the snapshot compare. Pass
+`--rebuild` on the Beeb trace to convert again. WAV sidecars: `out/c64.wav`,
+`out/beeb.wav`. Use `--no-wav` when you only need the poke JSON.
+
+A listing-built SIDPLAY image (no convert/patcher) is
+[`../goldenaxe.bbcsid/`](../goldenaxe.bbcsid/).

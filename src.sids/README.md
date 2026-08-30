@@ -6,7 +6,8 @@ a BeebDis listing plus stub/tail blobs. Probe/ctl scratch stays in
 
 | Dir | Tune |
 |-----|------|
-| [goldenaxe/](goldenaxe/) | `Golden_Axe.sid` |
+| [goldenaxe/](goldenaxe/) | `Golden_Axe.sid` (HVSC replica) |
+| [goldenaxe.bbcsid/](goldenaxe.bbcsid/) | Golden Axe song 0 `.bbcsid` (`$4000` / `$FC20`) |
 | [robocop3/](robocop3/) | `RoboCop_3.sid` |
 
 ```bash

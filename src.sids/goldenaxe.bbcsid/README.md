@@ -1,0 +1,30 @@
+# goldenaxe.bbcsid — Golden Axe assembled for SIDPLAY
+
+Listing-built `.bbcsid` for song 0. Not the convert/patcher path.
+
+`from-listing.mjs` retargets [`../goldenaxe/src/player.asm`](../goldenaxe/src/player.asm):
+`org $4000`, `SID = $FC20`. `reloc-data.mjs` rewrites **only** known
+pointer high bytes (`$9x` → `$4x`). A word scan must not run: it treated
+`L996B` pitch `$95,$9B` as address `$9B95` and the 60 s lists diverged.
+
+The 4K is assembled for `$4000` but stored at `$1A30`. Init at `$1A00`
+copies it to `$4000` (OSFILE does not load a DFS file through `$4000`),
+then `LDA #$01 / JMP $4000` — the HVSC stub calls the player with
+`$10A4` (song 0 = `$01`). Play is `$4003`.
+
+```bash
+BEEBASM=/path/to/beebasm src.sids/goldenaxe.bbcsid/bin/build.sh
+```
+
+Writes `out/Golden_Axe.bbcsid` and `out/goldenaxe.ssd`. Compare pokes
+against Hermit on the HVSC original:
+
+```bash
+node src.sids/goldenaxe/bin/trace-c64.mjs --seconds 60 --no-wav
+node src.sids/goldenaxe/bin/trace-beeb.mjs --seconds 60 --no-wav \
+  --ssd src.sids/goldenaxe.bbcsid/out/goldenaxe.ssd \
+  --out src.sids/goldenaxe.bbcsid/out
+node src.sids/goldenaxe/bin/compare-pokes.mjs \
+  --a src.sids/goldenaxe/out/c64.sidtrace.json \
+  --b src.sids/goldenaxe.bbcsid/out/beeb.sidtrace.json
+```
