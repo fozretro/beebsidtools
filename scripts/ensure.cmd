@@ -58,12 +58,20 @@ set "_ok=%~3"
 shift
 shift
 shift
+rem shift does not change %* — collect the remaining command from %1.
+set "_cmd=%1"
+:run_logged_args
+shift
+if "%~1"=="" goto :run_logged_go
+set "_cmd=%_cmd% %1"
+goto :run_logged_args
+:run_logged_go
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
 set "_log=%ROOT%\logs\%_logname%"
 rem echo( so "Building (first run)..." cannot close an if ( block (#18).
 echo(%_doing%
-echo === %DATE% %TIME% %* === > "%_log%"
-call %* >> "%_log%" 2>&1
+echo === %DATE% %TIME% %_cmd% === > "%_log%"
+call %_cmd% >> "%_log%" 2>&1
 if errorlevel 1 goto :run_logged_fail
 echo(%_ok%
 goto :eof
