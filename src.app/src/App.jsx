@@ -523,15 +523,6 @@ export default function App() {
                 />
               </label>
               or drop <code>.sid</code> files here
-              {" · "}
-              <button
-                type="button"
-                className="file-btn"
-                disabled={busy}
-                onClick={() => setHvscOpen(true)}
-              >
-                HVSC
-              </button>
             </p>
             <div className="file-listing mode7" role="listbox" aria-label="SID files">
               <div className="file-listing__prompt">&gt; *DOWNLOADS</div>
@@ -557,6 +548,14 @@ export default function App() {
               )}
             </div>
             <div className="drop-options">
+              <button
+                type="button"
+                className="file-btn"
+                disabled={busy}
+                onClick={() => setHvscOpen(true)}
+              >
+                HVSC
+              </button>
               <button
                 type="button"
                 className={`file-btn ${optionsOpen ? "file-btn--on" : ""}`}
