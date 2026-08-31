@@ -10,7 +10,7 @@
   "scripts": {
     "create": "node src/cli.js",
     "test": "node --test --test-timeout=180000 test/**/*.test.js",
-    "test:fast": "node --test --test-timeout=180000 test/songlengths.test.js test/upgrade-ssd.test.js test/ripsid-rmw.test.js test/golden-rip.test.js test/golden-patch.test.js test/golden-ssd.test.js test/progress.test.js test/preview-flags.test.js",
+    "test:fast": "node --test --test-timeout=180000 test/songlengths.test.js test/upgrade-ssd.test.js test/ripsid-rmw.test.js test/golden-rip.test.js test/golden-patch.test.js test/golden-ssd.test.js test/progress.test.js test/preview-flags.test.js test/dd-noise.test.js",
     "update:golden-ssd": "node test/bin/update-golden-ssd.js",
     "update:golden-reloc": "node test/bin/update-golden-reloc.js",
     "update:golden-audio": "node test/bin/update-golden-audio.js"

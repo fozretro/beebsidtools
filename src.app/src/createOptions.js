@@ -4,11 +4,12 @@ export const OPTIONS_STORAGE_KEY = "beebsidtools.createOptions";
 
 export const DEFAULT_CREATE_OPTIONS = {
   tunePreviews: true,
+  discNoises: true,
 };
 
 /**
  * @param {unknown} raw JSON string or object
- * @returns {{ tunePreviews: boolean }}
+ * @returns {{ tunePreviews: boolean, discNoises: boolean }}
  */
 export function parseCreateOptions(raw) {
   if (raw == null || raw === "") return { ...DEFAULT_CREATE_OPTIONS };
@@ -19,6 +20,7 @@ export function parseCreateOptions(raw) {
     }
     return {
       tunePreviews: parsed.tunePreviews !== false,
+      discNoises: parsed.discNoises !== false,
     };
   } catch {
     return { ...DEFAULT_CREATE_OPTIONS };
@@ -37,7 +39,7 @@ export function loadCreateOptions(storage = globalThis.localStorage) {
 }
 
 /**
- * @param {{ tunePreviews?: boolean }} opts
+ * @param {{ tunePreviews?: boolean, discNoises?: boolean }} opts
  * @param {Storage} [storage]
  */
 export function saveCreateOptions(opts, storage = globalThis.localStorage) {

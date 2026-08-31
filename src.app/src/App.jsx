@@ -51,8 +51,9 @@ const HELP_TEXT = [
   "Return while playing skips, Escape returns to the menu.",
   ", / . or ‹ › change song and leave auto-play.",
   "Create converts in the background; the bar above the log shows progress.",
-  "Options under the SID list turns tune preview clips on or off; kept in this browser.",
+  "Options under the SID list turns tune preview clips and Test Disc noises on or off; kept in this browser.",
   "f3 Test Disc boots the disc you just created, or Load disc / drop an .ssd.",
+  "Floppy sounds play while that disc loads so the menu is not mistaken for a crash (Options can silence them).",
   "Gallery shows sample discs; click a screenshot to boot it. Save Disc downloads the loaded .ssd.",
   "Upgrade puts the current player on that disc and adds play times if missing, then reboots.",
   "Upgrade is off when the disc is already current.",
@@ -657,6 +658,7 @@ export default function App() {
         open={liveOpen}
         ssd={result?.ssd ?? null}
         audioCtx={liveAudioCtx}
+        discNoises={createOptions.discNoises}
         onClose={onCloseLive}
       />
       <HvscBrowser

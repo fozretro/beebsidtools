@@ -193,7 +193,7 @@ jsbeeb emulates the BBC SN76489 (and Music 5000). It does not emulate BeebSID. H
 - **Turbo capture** — accelerated `runFor` for menu/`*CAT`/`*FREE` PNGs and per-tune WAVs (`recordAudio.js`).
 - **Live Test Disc** — same browser session, then realtime: `requestAnimationFrame` + canvas paint + keyboard (`src.app/src/livePreview.js`).
 
-Live looks like extra plumbing because the test/headless machine is reused instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). Keys go through the session `keyDown`/`keyUp` (browser `keyCode`), not jsbeeb’s `Keyboard`. Drive samples are left as `TestMachine`’s `FakeDdNoise`. FastSID is a live variant of the same `$FC20` hook used for WAV capture. The app must not import jsbeeb — only `preview/browser`.
+Live looks like extra plumbing because the test/headless machine is reused instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). Keys go through the session `keyDown`/`keyUp` (browser `keyCode`), not jsbeeb’s `Keyboard`. Drive samples: `TestMachine` always installs `FakeDdNoise` (the FDC closes over that object); Test Disc fetches `disc525` WAVs (`fetch` + `decodeAudioData`, not jsbeeb’s XHR loader) and patches the stub before `bootToMenu`. FastSID is a live variant of the same `$FC20` hook used for WAV capture. The app must not import jsbeeb — only `preview/browser`.
 
 An iframe of bbc.xania.org would not take an in-memory SSD just built, would not map BeebSID `$FC20`, and would not honour the `B1770` preview contract.
 
@@ -210,6 +210,7 @@ These jsbeeb entry points are imported from the preview hosts only (never the we
 | `jsbeeb/src/video.js` (`Video`) | <ul style="white-space:nowrap"><li>`new Video(…)` (framebuffer + paint callback)</li><li>`leftBorder`</li><li>`topBorder`</li><li>`rightBorder`</li><li>`bottomBorder`</li></ul> | browser session |
 | `jsbeeb/src/soundchip.js` | <ul style="white-space:nowrap"><li>`new InstrumentedSoundChip()`</li><li>`new FakeSoundChip()` (passed into `TestMachine`; SN76489, not BeebSID)</li></ul> | browser session |
 | `jsbeeb/src/fdc.js` (`discFor`) | <ul style="white-space:nowrap"><li>`discFor(fdc, name, bytes)`</li></ul> | browser session |
+| `jsbeeb/src/ddnoise.js` (`DdNoise`) | <ul style="white-space:nowrap"><li>`new DdNoise(audioCtx, destination)` then assign `.sounds` (Vite cannot use `loadSounds`)</li></ul> | browser session (Test Disc) |
 
 ## Do not regress
 

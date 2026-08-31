@@ -19,5 +19,5 @@ GitHub Pages (from `main`): <https://fozretro.github.io/beebsidtools/>
 - [x] Turbo menu image + per-tune audio (`preview/browser`)
 - [x] Download `.ssd`
 - [x] Live Preview modal (jsbeeb + BeebSID audio)
-- [x] Sync `sidpl.o` + jsbeeb ROMs + sample gallery into `public/`
+- [x] Sync `sidpl.o` + jsbeeb ROMs + disc525 samples + sample gallery into `public/`
 - [x] Node preview host unchanged for CLI

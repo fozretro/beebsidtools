@@ -10,6 +10,7 @@ import * as fdc from "jsbeeb/src/fdc.js";
 import { Video } from "jsbeeb/src/video.js";
 import { findModel } from "jsbeeb/src/models.js";
 import { setBaseUrl } from "jsbeeb/src/utils.js";
+import { attachDiscDriveNoise } from "./ddNoise.js";
 
 const FB_WIDTH = 1024;
 const FB_HEIGHT = 625;
@@ -71,6 +72,7 @@ export class MachineSession {
   constructor(modelName = "B1770", opts = {}) {
     this.modelName = modelName;
     this._opts = opts;
+    this._discNoise = null;
 
     this._fb8 = new Uint8Array(FB_WIDTH * FB_HEIGHT * 4);
     this._fb32 = new Uint32Array(this._fb8.buffer);
@@ -220,6 +222,19 @@ export class MachineSession {
   }
 
   /**
+   * Play jsbeeb 5.25" samples through the FDC (TestMachine starts silent).
+   * @param {AudioContext} audioCtx
+   */
+  async attachDiscDriveNoise(audioCtx) {
+    this._discNoise?.dispose();
+    this._discNoise = await attachDiscDriveNoise(
+      audioCtx,
+      this.processor,
+      this._opts.romBaseUrl ?? DEFAULT_ROM_BASE,
+    );
+  }
+
+  /**
    * Map window keydown/keyup to BBC keys (browser keyCode, same as keyDown).
    * @returns {() => void} detach
    */
@@ -243,6 +258,8 @@ export class MachineSession {
   }
 
   destroy() {
+    this._discNoise?.dispose();
+    this._discNoise = null;
     this._fb8.fill(0);
   }
 }

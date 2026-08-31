@@ -1307,7 +1307,7 @@ body {
 .modal.chrome-panel.options-modal {
   width: min(92vw, 28rem);
   height: auto;
-  max-height: min(80vh, 22rem);
+  max-height: min(80vh, 28rem);
 }
 
 .options-shell {

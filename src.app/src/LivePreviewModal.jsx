@@ -18,10 +18,17 @@ function isSsdName(name) {
  *   open: boolean,
  *   ssd: Uint8Array|ArrayBuffer|null,
  *   audioCtx: AudioContext|null,
+ *   discNoises?: boolean,
  *   onClose: () => void,
  * }} props
  */
-export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
+export default function LivePreviewModal({
+  open,
+  ssd,
+  audioCtx,
+  discNoises = true,
+  onClose,
+}) {
   const canvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const [status, setStatus] = useState("Opening…");
@@ -244,6 +251,7 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
           canvas,
           discBytes: disc,
           audioCtx,
+          discNoises,
           onStatus: (text, isError = false) => {
             if (cancelled) return;
             setStatus(text);
@@ -268,7 +276,7 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
       handleRef.current?.dispose();
       handleRef.current = null;
     };
-  }, [open, disc, audioCtx]);
+  }, [open, disc, audioCtx, discNoises]);
 
   if (!open) return null;
 
