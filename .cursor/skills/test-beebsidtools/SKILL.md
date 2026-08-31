@@ -20,6 +20,7 @@ Work from the repo root. Node ≥24.15. Player rebuilds need BeebAsm on
 | One package | `npm run test:create` / `test:player` / `test:app` |
 | One file | `node --test --test-timeout=180000 src.create/test/upgrade-ssd.test.js` |
 | One name | `node --test --test-timeout=180000 --test-name-pattern='Down does not' src.create/test/autoplay-preview.test.js` |
+| Windows first-run `create.cmd` | `.github/workflows/windows-create.yml` (`windows-latest`, `shell: cmd`) |
 
 `test:fast` is create unit/golden-ssd + player binary goldens only. It does
 **not** boot jsbeeb (`autoplay-preview`, `golden-preview`, `golden-audio`)

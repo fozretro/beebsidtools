@@ -60,16 +60,17 @@ shift
 shift
 if not exist "%ROOT%\logs" mkdir "%ROOT%\logs"
 set "_log=%ROOT%\logs\%_logname%"
-echo %_doing%
+rem echo( so "Building (first run)..." cannot close an if ( block (#18).
+echo(%_doing%
 echo === %DATE% %TIME% %* === > "%_log%"
 call %* >> "%_log%" 2>&1
-if errorlevel 1 (
-  echo Failed: %_doing%
-  echo See %_log%
-  exit /b 1
-)
-echo %_ok%
+if errorlevel 1 goto :run_logged_fail
+echo(%_ok%
 goto :eof
+:run_logged_fail
+echo(Failed: %_doing%
+echo See %_log%
+exit /b 1
 
 :ensure_pkg
 set "_dir=%~1"
