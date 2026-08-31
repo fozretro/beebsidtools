@@ -437,6 +437,35 @@ body {
   overflow: hidden;
 }
 
+.create-progress {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.create-progress__track {
+  height: 10px;
+  background: #000;
+  border: 1px solid #6d5d46;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.create-progress__bar {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.15s linear;
+}
+
+.create-progress__label {
+  font-family: var(--mode7);
+  font-size: var(--mode7-size);
+  color: #5a4c3e;
+  letter-spacing: 0.02em;
+}
+
 .log {
   margin: 0;
   padding: 0.75rem;

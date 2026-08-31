@@ -57,7 +57,8 @@ see `upgrade-beebsid-disc`. Convert leftovers go in `out/`, not `discs/`.
 npm run dev:app          # same as ./app, default Vite port 5173
 ```
 
-App must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
+App convert/pack runs in a worker (`createSsd` without preview). Preview
+must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
 
 Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f9 Credits, f0 Help (version + release notes).
 

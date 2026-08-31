@@ -69,7 +69,7 @@ BeebAsm port of classic SIDPLAY (BBC Mode 7) and SIDPELK (Electron). Build produ
 
 ### app
 
-Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, screenshots, tune WAVs, Test Disc (live jsbeeb). Sync scripts copy player binaries and jsbeeb ROMs/sounds into `public/`.
+Thin UI: drag-drop SIDs → worker `createSsd` (convert/pack) + main-thread `preview/browser` → download SSD, screenshots, tune WAVs, Test Disc (live jsbeeb). Sync scripts copy player binaries and jsbeeb ROMs/sounds into `public/`.
 
 ## Create Tool Output
 

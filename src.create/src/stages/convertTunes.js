@@ -16,6 +16,7 @@ import {
   describeTuneRam,
   formatTuneRam,
 } from "../lib/tuneRam.js";
+import { convertProgressUpdate, reportProgress } from "../progress.js";
 
 function applyReplacePatch({ inputSid, patchFlag, inputSha256 }) {
   if (patchFlag === false) return null;
@@ -75,6 +76,7 @@ export function convertTunesStage(opts = {}) {
         const inputSid = Buffer.from(input.sid ?? input.inputSid);
         const patch = input.patch === undefined ? defaultPatch : input.patch;
 
+        reportProgress(ctx, convertProgressUpdate(ctx, i, baseName));
         ctx.log.push(`  [${i + 1}/${inputs.length}] ${baseName}`);
 
         try {

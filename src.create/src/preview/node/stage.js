@@ -2,6 +2,8 @@
  * Node turbo preview pipeline stage.
  */
 
+import { previewProgressUpdate, reportProgress } from "../../progress.js";
+
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.audio=true]
@@ -28,6 +30,8 @@ export function previewSsdStage(opts = {}) {
         (t) => t.title || t.baseName || "tune",
       );
       const tuneCount = Math.max(1, tuneNames.length || 1);
+      ctx.previewSteps = 1 + (audio ? tuneCount : 0);
+      ctx.previewAudio = audio;
 
       ctx.log.push(
         `  preview (node): menu PNG` +
@@ -43,7 +47,10 @@ export function previewSsdStage(opts = {}) {
         secondsPerTune: secs,
         audio,
         onLog: (line) => ctx.log.push(line),
+        onProgress: ({ step, label }) =>
+          reportProgress(ctx, previewProgressUpdate(ctx, { step, label })),
       });
+      reportProgress(ctx, previewProgressUpdate(ctx, { done: true }));
 
       ctx.log.push(
         `  preview: ${preview.menuPng.length} byte PNG` +

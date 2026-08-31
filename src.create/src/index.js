@@ -86,11 +86,20 @@ export {
 export { builtinPatches as patches } from "./patches/index.js";
 export { parsePsid } from "./lib/psid.js";
 export { parseBrkList } from "./lib/brk.js";
+export {
+  progressTotal,
+  previewStepCount,
+  convertProgressUpdate,
+  packProgressUpdate,
+  previewProgressUpdate,
+  reportProgress,
+} from "./progress.js";
 
 import { runPipeline, createContext } from "./pipeline.js";
 import { convertTunesStage } from "./stages/convertTunes.js";
 import { packSsdStage } from "./stages/ssd.js";
 import { SIDPELK_LOAD, SIDPLAY_LOAD } from "./lib/tuneRam.js";
+import { previewStepCount, progressTotal } from "./progress.js";
 
 /**
  * @param {Buffer|Uint8Array|{sid:Buffer|Uint8Array,baseName?:string,title?:string,patch?:true|string|false,dfsName?:string}|Array} inputs
@@ -152,8 +161,11 @@ export async function convertSid(inputSid, opts = {}) {
  * @param {object} [opts]
  * @param {true|string|false} [opts.patch=true]
  * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
+ * @param {(line: string) => void} [opts.onLog]
+ * @param {(info: { phase: string, current: number, total: number, label?: string }) => void} [opts.onProgress]
  */
 export async function convertSids(inputs, opts = {}) {
+  const list = normalizeSidInputs(inputs);
   const ctx = await runPipeline(
     [
       convertTunesStage({
@@ -162,7 +174,12 @@ export async function convertSids(inputs, opts = {}) {
         onError: "fail",
       }),
     ],
-    createContext({ inputs: normalizeSidInputs(inputs) }),
+    createContext({
+      inputs: list,
+      onLog: opts.onLog,
+      onProgress: opts.onProgress,
+      progressTotal: opts.progressTotal ?? list.length,
+    }),
   );
   return { tunes: ctx.tunes, log: ctx.log, meta: ctx.meta };
 }
@@ -189,11 +206,22 @@ export async function convertSids(inputs, opts = {}) {
  *   `preview/node/stage.js` (CLI) or `preview/browser/stage.js` (app)
  *   so bundlers never pull the wrong host.
  * @param {(line: string) => void} [opts.onLog] - live log lines as the pipeline runs
+ * @param {(info: { phase: string, current: number, total: number, label?: string }) => void} [opts.onProgress]
+ * @param {number} [opts.progressExtra] reserved steps after pack (preview on another thread).
+ *   Defaults to menu + one WAV per tune when `opts.preview` is set.
  */
 export async function createSsd(inputs, opts = {}) {
   if (!opts.assets?.sidplay) {
     throw new Error("createSsd: opts.assets.sidplay required");
   }
+
+  const list = normalizeSidInputs(inputs);
+  const previewOpts = opts.preview === true ? {} : opts.preview || {};
+  const extra =
+    opts.progressExtra ??
+    (opts.preview
+      ? previewStepCount(list.length, { audio: previewOpts.audio !== false })
+      : 0);
 
   const stages = [
     convertTunesStage({
@@ -222,9 +250,11 @@ export async function createSsd(inputs, opts = {}) {
   const ctx = await runPipeline(
     stages,
     createContext({
-      inputs: normalizeSidInputs(inputs),
+      inputs: list,
       assets: opts.assets,
       onLog: opts.onLog,
+      onProgress: opts.onProgress,
+      progressTotal: progressTotal(list.length, extra),
       meta: {
         discTitle: opts.title ?? "BEEBSID",
         includeSidpelk: !!opts.includeSidpelk,

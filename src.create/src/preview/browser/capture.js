@@ -66,6 +66,7 @@ async function captureOneTune(
  * @param {string} [opts.model]
  * @param {string} [opts.romBaseUrl]
  * @param {(line: string) => void} [opts.onLog]
+ * @param {(info: { step: number, label: string }) => void} [opts.onProgress]
  */
 export async function captureSsdPreview({
   ssd,
@@ -78,6 +79,7 @@ export async function captureSsdPreview({
   model = "B1770",
   romBaseUrl = DEFAULT_ROM_BASE,
   onLog = null,
+  onProgress = null,
 }) {
   if (ssd == null) throw new Error("captureSsdPreview: ssd required");
   if (typeof document === "undefined") {
@@ -91,6 +93,7 @@ export async function captureSsdPreview({
     if (typeof onLog === "function") onLog(line);
   };
 
+  onProgress?.({ step: 0, label: "menu" });
   log("    booting jsbeeb (browser) for *CAT/*FREE + menu screenshots…");
   const shot = new MachineSession(model, {
     discImage: discBytes,
@@ -119,6 +122,7 @@ export async function captureSsdPreview({
   if (audio) {
     for (let i = 0; i < n; i++) {
       const name = tuneNames[i] || (i === 0 && tune0 ? tune0 : `tune${i}`);
+      onProgress?.({ step: 1 + i, label: name });
       log(`    recording ${i + 1}/${n}: ${name} (${secs}s)…`);
       const { wav, tune0: t0 } = await captureOneTune(
         discBytes,

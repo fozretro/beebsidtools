@@ -4,6 +4,7 @@
  */
 
 import { packBeebSidSsd } from "../lib/ssd.js";
+import { packProgressUpdate, reportProgress } from "../progress.js";
 
 /**
  * @param {object} [opts]
@@ -19,6 +20,8 @@ export function packSsdStage(opts = {}) {
       if (!ctx.assets?.sidplay) {
         throw new Error("pack-ssd: ctx.assets.sidplay (sidpl.o) required");
       }
+
+      reportProgress(ctx, packProgressUpdate(ctx));
 
       const includeSidpelk =
         opts.includeSidpelk ?? ctx.meta?.includeSidpelk ?? false;

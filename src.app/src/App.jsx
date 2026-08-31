@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Buffer } from "buffer";
-import { createSsd } from "beebsidtools-src-create";
+import {
+  createContext,
+  previewStepCount,
+  progressTotal,
+} from "beebsidtools-src-create";
 import {
   UI_SECONDS_PER_TUNE,
   previewSsdStage,
@@ -10,6 +14,8 @@ import HvscBrowser from "./HvscBrowser.jsx";
 import { publicUrl } from "./publicUrl.js";
 import { TOOLS_VERSION } from "./versions.js";
 import { formatReleaseNotes } from "./releaseNotes.js";
+import { createDiscInWorker } from "./createInWorker.js";
+import { formatCreateProgress } from "./createProgress.js";
 
 function formatColumns(rows, sep = " · ") {
   const widths = [];
@@ -39,6 +45,7 @@ const HELP_TEXT = [
   "(MM:SS countdown on the play screen),",
   "Return while playing skips, Escape returns to the menu.",
   ", / . or ‹ › change song and leave auto-play.",
+  "Create converts in the background; the bar above the log shows progress.",
   "f3 Test Disc boots the disc you just created, or Load disc / drop an .ssd.",
   "Gallery shows sample discs; click a screenshot to boot it. Save Disc downloads the loaded .ssd.",
   "Upgrade puts the current player on that disc and adds play times if missing, then reboots.",
@@ -116,6 +123,7 @@ export default function App() {
   const [files, setFiles] = useState([]);
   const [selected, setSelected] = useState(-1);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [log, setLog] = useState(CREDITS_TEXT);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -237,6 +245,12 @@ export default function App() {
   async function onCreate() {
     if (!files.length) return;
     setBusy(true);
+    setProgress({
+      phase: "load",
+      current: 0,
+      total: progressTotal(files.length, previewStepCount(files.length)),
+      label: "assets",
+    });
     setError("");
     setResult(null);
     setMenuUrl((u) => {
@@ -274,41 +288,56 @@ export default function App() {
 
       appendLog(`Creating SSD from ${inputs.length} SID(s) (in-browser)…`);
 
-      const out = await createSsd(inputs, {
+      const packed = await createDiscInWorker({
+        inputs,
         assets,
         title: "BEEBSID",
-        preview: {
-          stage: previewSsdStage({
-            audio: true,
-            secondsPerTune: UI_SECONDS_PER_TUNE,
-            romBaseUrl: publicUrl("jsbeeb/"),
-          }),
-        },
         onLog: appendLog,
+        onProgress: setProgress,
       });
+
+      const previewed = await previewSsdStage({
+        audio: true,
+        secondsPerTune: UI_SECONDS_PER_TUNE,
+        romBaseUrl: publicUrl("jsbeeb/"),
+      }).run(
+        createContext({
+          ssd: Buffer.from(packed.ssd),
+          tunes: packed.tunes,
+          inputs,
+          progressTotal: progressTotal(
+            inputs.length,
+            previewStepCount(inputs.length),
+          ),
+          previewSteps: previewStepCount(packed.tunes.length),
+          previewAudio: true,
+          onLog: appendLog,
+          onProgress: setProgress,
+        }),
+      );
 
       setResult({
-        ssd: out.ssd,
-        preview: out.preview,
+        ssd: packed.ssd,
+        preview: previewed.preview,
       });
 
-      if (out.preview?.menuPng) {
+      if (previewed.preview?.menuPng) {
         setMenuUrl(
           URL.createObjectURL(
-            new Blob([out.preview.menuPng], { type: "image/png" }),
+            new Blob([previewed.preview.menuPng], { type: "image/png" }),
           ),
         );
       }
-      if (out.preview?.freePng) {
+      if (previewed.preview?.freePng) {
         setFreeUrl(
           URL.createObjectURL(
-            new Blob([out.preview.freePng], { type: "image/png" }),
+            new Blob([previewed.preview.freePng], { type: "image/png" }),
           ),
         );
       }
-      if (out.preview?.tunes?.length) {
+      if (previewed.preview?.tunes?.length) {
         setAudioUrls(
-          out.preview.tunes.map((t) => ({
+          previewed.preview.tunes.map((t) => ({
             name: t.name,
             url: URL.createObjectURL(
               new Blob([t.wav], { type: "audio/wav" }),
@@ -320,6 +349,7 @@ export default function App() {
       setError(err?.message || String(err));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -398,6 +428,8 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
+
+  const shownProgress = formatCreateProgress(progress);
 
   return (
     <div className="app">
@@ -512,6 +544,28 @@ export default function App() {
 
           <div className="panel-inner log-panel">
             {error ? <p className="meta err">Error: {error}</p> : null}
+            {busy ? (
+              <div className="create-progress">
+                <div
+                  className="create-progress__track"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={shownProgress.percent}
+                  aria-label={shownProgress.text || "Creating disc"}
+                >
+                  <div
+                    className="create-progress__bar"
+                    style={{ width: `${shownProgress.percent}%` }}
+                  />
+                </div>
+                {shownProgress.text ? (
+                  <div className="create-progress__label">
+                    {shownProgress.text}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <pre className="log mode7" ref={logRef}>
               {log}
             </pre>

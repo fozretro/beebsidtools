@@ -1,7 +1,8 @@
 # BeebSID Disc Creator
 
-React UI over the create engine. Drag-drop SIDs → **in-browser** `createSsd`
-with turbo preview from `beebsidtools-src-create/preview/browser`.
+React UI over the create engine. Drag-drop SIDs → worker `createSsd`
+(convert/pack) then turbo preview on the UI thread from
+`beebsidtools-src-create/preview/browser`.
 
 CLI uses `preview/node` (`MachineSession` + `sharp`).
 
