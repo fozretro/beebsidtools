@@ -1,6 +1,6 @@
 {
   "name": "beebsidtools-src-app",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,9 @@
     "preview": "vite preview",
     "sync:player": "node scripts/sync-player-resources.js",
     "sync:jsbeeb": "node scripts/sync-jsbeeb-roms.js",
-    "sync": "npm run sync:player && npm run sync:jsbeeb",
+    "sync:gallery": "node scripts/sync-gallery.js",
+    "capture:gallery": "node scripts/capture-gallery-shots.js",
+    "sync": "npm run sync:player && npm run sync:jsbeeb && npm run sync:gallery",
     "predev": "npm run sync",
     "prebuild": "npm run sync",
     "test": "node --test test/**/*.test.js"

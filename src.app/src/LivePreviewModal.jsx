@@ -5,6 +5,7 @@ import {
   upgradeBeebSidSsd,
   upgradeNeeded,
 } from "beebsidtools-src-create";
+import { parseGalleryIndex } from "./gallery.js";
 import { runLivePreview } from "./livePreview.js";
 import { publicUrl } from "./publicUrl.js";
 
@@ -31,6 +32,10 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
   const [upgrading, setUpgrading] = useState(false);
   const [canUpgrade, setCanUpgrade] = useState(false);
   const [alertText, setAlertText] = useState("");
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryDiscs, setGalleryDiscs] = useState(null);
+  const [galleryErr, setGalleryErr] = useState("");
+  const [galleryLoading, setGalleryLoading] = useState("");
   const assetsRef = useRef(null);
   const handleRef = useRef(null);
 
@@ -50,6 +55,8 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
       setDragOver(false);
       setCanUpgrade(false);
       setAlertText("");
+      setGalleryOpen(false);
+      setGalleryLoading("");
       return;
     }
     if (ssd) {
@@ -62,6 +69,53 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
       setStatusErr(false);
     }
   }, [open, ssd]);
+
+  async function loadGalleryIndex() {
+    if (galleryDiscs) return galleryDiscs;
+    const res = await fetch(publicUrl("gallery/index.json"));
+    if (!res.ok) throw new Error("Gallery is not bundled — run npm run sync");
+    const { discs } = parseGalleryIndex(await res.text());
+    setGalleryDiscs(discs);
+    return discs;
+  }
+
+  async function onGallery() {
+    if (galleryOpen) {
+      setGalleryOpen(false);
+      return;
+    }
+    setGalleryErr("");
+    try {
+      await loadGalleryIndex();
+      setGalleryOpen(true);
+    } catch (err) {
+      setGalleryErr(err?.message || String(err));
+      setGalleryOpen(true);
+    }
+  }
+
+  async function loadGalleryDisc(entry) {
+    if (galleryLoading) return;
+    setGalleryLoading(entry.file);
+    setStatusErr(false);
+    try {
+      const res = await fetch(publicUrl(`gallery/${entry.file}`));
+      if (!res.ok) throw new Error(`Missing ${entry.file}`);
+      const bytes = new Uint8Array(await res.arrayBuffer());
+      const bad = beebSidSsdError(bytes);
+      if (bad) {
+        setAlertText(bad);
+        return;
+      }
+      setDisc(bytes);
+      setDiscName(entry.file);
+      setGalleryOpen(false);
+    } catch (err) {
+      setAlertText(err?.message || String(err));
+    } finally {
+      setGalleryLoading("");
+    }
+  }
 
   async function loadFile(file) {
     if (!file || !isSsdName(file.name)) {
@@ -77,6 +131,7 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
     setDisc(bytes);
     setDiscName(file.name);
     setStatusErr(false);
+    setGalleryOpen(false);
   }
 
   function saveName() {
@@ -289,6 +344,15 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
             >
               Save Disc
             </button>
+            <button
+              type="button"
+              className={`file-btn ${galleryOpen ? "file-btn--on" : ""}`}
+              title="Browse sample discs"
+              aria-pressed={galleryOpen}
+              onClick={() => void onGallery()}
+            >
+              Gallery
+            </button>
             <span className="live-disc-name">{label}</span>
           </div>
 
@@ -324,9 +388,43 @@ export default function LivePreviewModal({ open, ssd, audioCtx, onClose }) {
                 className="live-empty"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Drop an .ssd here or choose Load disc
+                Drop an .ssd here, choose Load disc, or open Gallery
               </button>
             )}
+            {galleryOpen ? (
+              <div className="gallery-overlay" role="region" aria-label="Disc gallery">
+                {galleryErr ? (
+                  <p className="gallery-empty">{galleryErr}</p>
+                ) : !galleryDiscs?.length ? (
+                  <p className="gallery-empty">No sample discs in the gallery.</p>
+                ) : (
+                  <div className="gallery-grid">
+                    {galleryDiscs.map((entry) => (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        className="gallery-tile"
+                        disabled={!!galleryLoading}
+                        onClick={() => void loadGalleryDisc(entry)}
+                      >
+                        {entry.png ? (
+                          <img
+                            src={publicUrl(`gallery/${entry.png}`)}
+                            alt=""
+                            className="gallery-shot"
+                          />
+                        ) : (
+                          <span className="gallery-shot gallery-shot--empty" />
+                        )}
+                        <span className="gallery-caption">
+                          {galleryLoading === entry.file ? "Loading…" : entry.title}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
         {alertText ? (

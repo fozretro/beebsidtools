@@ -17,8 +17,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN = join(HERE, "golden");
 
 test("patch registry loads golden-axe, head-over-heels, robocop, robocop-3", () => {
+  // Given the built-in patch registry
+  // When getPatches lists ids
   const patches = getPatches();
   const ids = patches.map((p) => p.id).sort();
+  // Then the four hash patches are present
   assert.deepEqual(ids, [
     "golden-axe",
     "head-over-heels",
@@ -28,6 +31,7 @@ test("patch registry loads golden-axe, head-over-heels, robocop, robocop-3", () 
 });
 
 test("robocop pre-patch sets play=$254f", () => {
+  // Given the golden RoboCop SID
   const orig = join(GOLDEN, "RoboCop.sid");
   assert.ok(existsSync(orig));
   const patches = getPatches();
@@ -39,12 +43,15 @@ test("robocop pre-patch sets play=$254f", () => {
   });
   assert.equal(selected.id, "robocop");
   assert.equal(selected.phase, "pre");
+  // When the pre-patch runs
   const { patchedSid, reloc } = selected.patch(readFileSync(orig));
+  // Then play is $254f and reloc gets a long init
   assert.equal((patchedSid[0x0c] << 8) | patchedSid[0x0d], 0x254f);
   assert.equal(reloc?.initCycles, 2_000_000);
 });
 
 test("patch auto-select by original SID hash: Head Over Heels", async () => {
+  // Given Head Over Heels original, relocated, and patched goldens
   const orig = join(GOLDEN, "Head_Over_Heels.sid");
   const rel = join(GOLDEN, "Head_Over_Heels.rel.sid");
   const golden = join(GOLDEN, "Head_Over_Heels.patched.sid");
@@ -59,11 +66,14 @@ test("patch auto-select by original SID hash: Head Over Heels", async () => {
   });
   assert.equal(selected.id, "head-over-heels");
 
+  // When the post-patch runs on the relocated SID
   const { patchedSid } = selected.patch(readFileSync(rel));
+  // Then the bytes match the patched golden
   assert.ok(Buffer.from(patchedSid).equals(readFileSync(golden)));
 });
 
 test("patch auto-select by original SID hash: Golden Axe", async () => {
+  // Given the HVSC Golden Axe SID and the listing .bbcsid
   const orig = join(GOLDEN, "Golden_Axe.sid");
   const golden = join(GOLDEN, "Golden_Axe.bbcsid");
   assert.ok(existsSync(orig) && existsSync(golden));
@@ -78,7 +88,9 @@ test("patch auto-select by original SID hash: Golden Axe", async () => {
   assert.equal(selected.id, "golden-axe");
   assert.equal(selected.phase, "replace");
 
+  // When the replace patch and convertSid run
   const { bbcSid } = selected.patch(readFileSync(orig));
+  // Then both emit the listing image
   assert.ok(Buffer.from(bbcSid).equals(readFileSync(golden)));
 
   const converted = await convertSid(readFileSync(orig), {
@@ -89,6 +101,7 @@ test("patch auto-select by original SID hash: Golden Axe", async () => {
 });
 
 test("patch auto-select by relocated hash: RoboCop 3", async () => {
+  // Given RoboCop 3 original, relocated, and patched goldens
   const orig = join(GOLDEN, "RoboCop_3.sid");
   const rel = join(GOLDEN, "RoboCop_3.rel.sid");
   const golden = join(GOLDEN, "RoboCop_3.patched.sid");
@@ -103,18 +116,26 @@ test("patch auto-select by relocated hash: RoboCop 3", async () => {
   });
   assert.equal(selected.id, "robocop-3");
 
+  // When the post-patch runs on the relocated SID
   const { patchedSid } = selected.patch(readFileSync(rel));
+  // Then the bytes match the patched golden
   assert.ok(Buffer.from(patchedSid).equals(readFileSync(golden)));
 });
 
 test("patch force by id", async () => {
+  // Given the registry
   const patches = getPatches();
+  // When resolvePatch is forced to robocop-3
   const p = resolvePatch({ patches, patchFlag: "robocop-3" });
+  // Then that id is selected
   assert.equal(p.id, "robocop-3");
 });
 
 test("patch auto optional returns null when no hash match", async () => {
+  // Given a hash that matches no patch
   const patches = getPatches();
+  // When resolvePatch is optional
+  // Then it returns null
   assert.equal(
     resolvePatch({
       patches,
@@ -127,7 +148,10 @@ test("patch auto optional returns null when no hash match", async () => {
 });
 
 test("patch auto strict throws when no hash match", async () => {
+  // Given a hash that matches no patch
   const patches = getPatches();
+  // When resolvePatch is strict
+  // Then it throws
   assert.throws(
     () =>
       resolvePatch({

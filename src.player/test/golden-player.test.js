@@ -16,6 +16,7 @@ const GOLDEN = join(HERE, "golden");
 
 for (const name of ["sidpl.o", "sidpelk.o"]) {
   test(`player golden: ${name}`, () => {
+    // Given a built player object and its committed golden
     const built = join(OUT, name);
     const golden = join(GOLDEN, name);
     assert.ok(existsSync(built), `missing ${built} — npm run build`);
@@ -23,8 +24,10 @@ for (const name of ["sidpl.o", "sidpelk.o"]) {
       existsSync(golden),
       `missing ${golden} — npm run update:golden-player`,
     );
+    // When the two images are compared
     const a = readFileSync(built);
     const b = readFileSync(golden);
+    // Then they are byte-identical
     if (!a.equals(b)) {
       assert.fail(
         `${name} differs from golden\n` +

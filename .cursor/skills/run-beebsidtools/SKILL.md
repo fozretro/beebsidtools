@@ -63,9 +63,11 @@ Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f9 Credits, f0
 
 ## Tests
 
+Given / When / Then, goldens, and jsbeeb SIDPLAY: `test-beebsidtools`.
+
 ```bash
-npm test                 # create + player
-npm run test:fast        # skip slow reloc / optional player modules
+npm test                 # create + player + app
+npm run test:fast        # skip slow reloc / jsbeeb / optional modules
 npm run test:create
 npm run test:player
 ```
@@ -88,7 +90,7 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 1. Missing `sidpl.o` → `./create` / `./app` copy goldens into `src.player/out/`.
 2. Vite/`MachineSession` fs errors → wrong preview host import.
 3. `*FREE` fails → model must be `B1770`, not `B-DFS1.2`.
-4. App ROMs missing → `npm run sync --prefix src.app`.
+4. App ROMs / gallery discs missing → `npm run sync --prefix src.app`.
 5. Patch unexpected → check `./create patches` / `--no-patch` / SID hash.
 6. First-run build failed → `logs/install-src.create.log` (`./create`) or `logs/build-app.log` (`./app`).
 
@@ -98,4 +100,5 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 - Contributing (tests, goldens, API): [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Package boundaries: `../rules/package-boundaries.mdc`
 - Preview hosts: `../rules/preview-hosts.mdc`
+- Tests / goldens / Given-When-Then: `../test-beebsidtools/SKILL.md`
 - Lineage: [`ARCHITECTURE.md`](../../ARCHITECTURE.md)

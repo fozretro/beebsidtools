@@ -21,8 +21,12 @@ function tinySid(payload) {
 }
 
 test("ripSid trampolines INC $FC24 through the shadow", () => {
+  // Given a SID whose payload is INC $FC24
   const payload = Buffer.from([0xee, 0x24, 0xfc, 0x60]);
+  // When ripSid rewrites it
   const { bbcSid, vars } = ripSid(tinySid(payload), "----DOM:BRK:0000:ee\n");
+  // Then INC goes through the $0720 shadow and still stores $FC24
+
   assert.ok(!vars.includes("Unknown opcode"), vars);
   assert.equal(bbcSid[8], 0x20, "INC replaced with JSR");
   const sh = SID_SHADOW + (0xfc24 - SID_BASE);

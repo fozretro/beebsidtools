@@ -5,6 +5,10 @@
 export const keyCodes = {
   ENTER: 13,
   SHIFT: 16,
+  ESCAPE: 27,
+  LEFT: 37,
+  RIGHT: 39,
   DOWN: 40,
   A: 65,
+  PERIOD: 190,
 };

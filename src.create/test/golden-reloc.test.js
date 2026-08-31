@@ -47,14 +47,17 @@ for (const c of sidCases()) {
     `reloc golden: ${c.name}`,
     { timeout: 120_000 },
     () => {
+      // Given a committed reloc golden for this SID
       const exitPath = join(GOLDEN, `${c.name}.reloc.exit`);
       assert.ok(
         existsSync(exitPath),
         `missing ${exitPath} — npm run update:golden-reloc`,
       );
       const wantExit = Number.parseInt(readFileSync(exitPath, "utf8").trim(), 10);
+      // When relocateSid runs with BeebSID defaults
       const js = relocateSid(readFileSync(c.path), DEFAULT_RELOC_OPTS);
 
+      // Then exit code, .rel.sid, and BRK lines match the golden
       assert.equal(
         js.exitCode,
         wantExit,

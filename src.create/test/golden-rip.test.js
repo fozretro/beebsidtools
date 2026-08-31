@@ -30,9 +30,13 @@ const cases = [
 
 for (const c of cases) {
   test(`rip golden: ${c.name}`, () => {
+    // Given a patched SID, BRK file, and committed .bbcsid
     assert.ok(existsSync(c.sid) && existsSync(c.brk) && existsSync(c.golden));
+    // When ripSid builds the BBC image
     const { bbcSid } = ripSid(readFileSync(c.sid), readFileSync(c.brk, "utf8"));
     const golden = readFileSync(c.golden);
+    // Then the bytes match the golden
+
     const at = firstDiff(bbcSid, golden);
     if (at >= 0) {
       assert.fail(
