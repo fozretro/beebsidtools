@@ -3,15 +3,17 @@
  */
 
 import { previewProgressUpdate, reportProgress } from "../../progress.js";
+import { wantTunePreviews } from "../../tunePreviews.js";
 
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.audio=true]
+ * @param {boolean} [opts.tunePreviews]
  * @param {number} [opts.secondsPerTune]
  * @param {(opts: object) => Promise<object>} [opts.capture]
  */
 export function previewSsdStage(opts = {}) {
-  const audio = opts.audio !== false;
+  const audio = wantTunePreviews(opts);
   const secondsPerTune = opts.secondsPerTune;
   const captureFn = opts.capture;
 

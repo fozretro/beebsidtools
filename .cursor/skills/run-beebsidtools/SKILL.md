@@ -37,7 +37,7 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 ./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --no-preview
 ./create ssd ~/HVSC/C64Music/MUSICIANS/H/Hubbard_Rob/Commando.sid \
   -o /tmp/commando.ssd --no-preview   # auto-finds DOCUMENTS/Songlengths.md5
-./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --record-audio
+./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --tune-previews
 ./create upgrade /tmp/cyber.ssd -o /tmp/cyber-new.ssd
 ./create patches
 ```
@@ -45,7 +45,7 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 Menu layout (`M.MENU`, `BSMN`, times) and `create upgrade` stay in lockstep —
 see `upgrade-beebsid-disc`. Convert leftovers go in `out/`, not `discs/`.
 
-- SSD create runs headless preview by default (`menu.png`; optional WAVs with `--record-audio`).
+- SSD create runs headless preview by default (`menu.png`; optional WAVs with `--tune-previews` / `--record-audio`).
 - Preview host for CLI: `preview/node` (injected inside CLI via `createSsd`).
 - Equivalent: `npm run create -- convert …`
 

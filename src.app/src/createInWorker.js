@@ -25,7 +25,13 @@ export function toTransferableBuffer(bytes) {
  *   title?: string,
  * }} job
  */
-export function buildCreateJob({ inputs, assets, title = "BEEBSID" }) {
+export function buildCreateJob({
+  inputs,
+  assets,
+  title = "BEEBSID",
+  tunePreviews = true,
+  progressExtra,
+}) {
   const sidBuffers = inputs.map((inp) => toTransferableBuffer(inp.sid));
   const sidplay = toTransferableBuffer(assets.sidplay);
   const hex = assets.hex ? toTransferableBuffer(assets.hex) : null;
@@ -36,7 +42,8 @@ export function buildCreateJob({ inputs, assets, title = "BEEBSID" }) {
   return {
     message: {
       title,
-      progressExtra: previewStepCount(inputs.length),
+      progressExtra:
+        progressExtra ?? previewStepCount(inputs.length, { tunePreviews }),
       inputs: inputs.map((inp, i) => ({
         sid: sidBuffers[i],
         baseName: inp.baseName,
@@ -96,6 +103,7 @@ export function createDiscInWorker({
   inputs,
   assets,
   title = "BEEBSID",
+  tunePreviews = true,
   onLog,
   onProgress,
 }) {
@@ -103,7 +111,12 @@ export function createDiscInWorker({
     const worker = new Worker(new URL("./createDisc.worker.js", import.meta.url), {
       type: "module",
     });
-    const { message, transfer } = buildCreateJob({ inputs, assets, title });
+    const { message, transfer } = buildCreateJob({
+      inputs,
+      assets,
+      title,
+      tunePreviews,
+    });
     let settled = false;
 
     function finish(fn, value) {

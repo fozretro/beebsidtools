@@ -94,6 +94,8 @@ export {
   previewProgressUpdate,
   reportProgress,
 } from "./progress.js";
+export { wantTunePreviews } from "./tunePreviews.js";
+export { applyPreviewFlag, previewOptsFromFlags } from "./previewFlags.js";
 
 import { runPipeline, createContext } from "./pipeline.js";
 import { convertTunesStage } from "./stages/convertTunes.js";
@@ -198,13 +200,16 @@ export async function convertSids(inputs, opts = {}) {
  * @param {boolean} [opts.includeSidpelk=false]
  * @param {boolean|{
  *   audio?: boolean,
+ *   tunePreviews?: boolean,
  *   secondsPerTune?: number,
  *   romBaseUrl?: string,
  *   stage?: { name: string, run: Function },
  * }} [opts.preview=false]
  *   When set, appends turbo preview. Pass `preview.stage` from
  *   `preview/node/stage.js` (CLI) or `preview/browser/stage.js` (app)
- *   so bundlers never pull the wrong host.
+ *   so bundlers never pull the wrong host. `audio` / `tunePreviews`
+ *   (same knob) are the mini WAV clips; menu PNG still runs when they
+ *   are off. Disc Creator default on; CLI off unless --tune-previews.
  * @param {(line: string) => void} [opts.onLog] - live log lines as the pipeline runs
  * @param {(info: { phase: string, current: number, total: number, label?: string }) => void} [opts.onProgress]
  * @param {number} [opts.progressExtra] reserved steps after pack (preview on another thread).
@@ -220,7 +225,7 @@ export async function createSsd(inputs, opts = {}) {
   const extra =
     opts.progressExtra ??
     (opts.preview
-      ? previewStepCount(list.length, { audio: previewOpts.audio !== false })
+      ? previewStepCount(list.length, previewOpts)
       : 0);
 
   const stages = [

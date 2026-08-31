@@ -128,7 +128,7 @@ npm run dev:app          # same server, default Vite port 5173
 
 CLI is the filesystem edge. Stages take buffers in / out. SSD create injects
 headless jsbeeb via `createSsd({ preview })` (`menu.png`; WAVs with
-`--record-audio`). `createSsd` skips a tune that fails convert (including
+`--tune-previews` / `--record-audio`). `createSsd` skips a tune that fails convert (including
 unpatched RSID) and packs the rest; `convertSid` / `convertSids` still throw.
 
 ```js

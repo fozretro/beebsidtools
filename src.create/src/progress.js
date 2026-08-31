@@ -14,14 +14,16 @@
  * @property {boolean} [done]
  */
 
+import { wantTunePreviews } from "./tunePreviews.js";
+
 /**
  * Preview is menu screenshots plus one WAV per packed tune (when audio).
  * @param {number} tuneCount
- * @param {{ audio?: boolean }} [opts]
+ * @param {{ audio?: boolean, tunePreviews?: boolean }} [opts]
  */
-export function previewStepCount(tuneCount, { audio = true } = {}) {
+export function previewStepCount(tuneCount, opts = {}) {
   const n = Math.max(0, tuneCount);
-  return 1 + (audio ? n : 0);
+  return 1 + (wantTunePreviews(opts) ? n : 0);
 }
 
 /**

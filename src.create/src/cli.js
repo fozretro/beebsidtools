@@ -22,6 +22,8 @@ import { fileURLToPath } from "node:url";
 import {
   createSsd,
   convertSids,
+  applyPreviewFlag,
+  previewOptsFromFlags,
   parsePsid,
   parseSonglengthsMd5,
   lookupPlaySeconds,
@@ -52,7 +54,8 @@ function usage(code = 1) {
            [--sidpelk] [--hex=path] [--patch=id] [--no-patch]
            [--page=HH] [--sid-dest=HHHH] [--force|--no-force]
            [--keep-zp|--no-keep-zp] [--zp=LO-HI]
-           [--no-preview] [--record-audio]
+           [--no-preview] [--tune-previews|--record-audio]
+           [--no-tune-previews]
            [--songlengths=Songlengths.md5] [--no-songlengths]
            [-o outdir|out.ssd]
   create ssd <in.sid...> [same options] [-o out.ssd]
@@ -68,7 +71,9 @@ function usage(code = 1) {
   will not play in the bundled player.
   SSD create skips a tune that fails convert (reloc, size, unpatched RSID)
   and packs the rest. Headless preview via createSsd({ preview }) → menu.png
-  (skip with --no-preview). --record-audio adds ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune.
+  (skip with --no-preview). --tune-previews (--record-audio) adds
+  ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune; --no-tune-previews skips
+  the WAVs and keeps the menu shot.
   Auto-play times: walks up from each .sid for HVSC DOCUMENTS/Songlengths.md5
   (or pass --songlengths=). Default ${DEFAULT_PLAY_SECONDS}s if unmatched.
   upgrade writes the current SIDPLAY (and SIDPELK / F.HEX when present) onto
@@ -160,10 +165,8 @@ function parseArgs(argv) {
       flags.add("ssd");
     } else if (a === "--sidpelk") {
       flags.add("sidpelk");
-    } else if (a === "--no-preview") {
-      flags.add("no-preview");
-    } else if (a === "--record-audio") {
-      flags.add("record-audio");
+    } else if (applyPreviewFlag(flags, a)) {
+      /* --no-preview / --tune-previews / --record-audio / --no-tune-previews */
     } else if (a === "--no-songlengths") {
       flags.add("no-songlengths");
     } else if (a.startsWith("--title=")) {
@@ -326,14 +329,6 @@ function attachPlaySeconds(inputs, { flags, songlengthsPath, onLog }) {
   return next;
 }
 
-/** @returns {false|{ audio: boolean, secondsPerTune: number }} */
-function previewOptsFromFlags(flags) {
-  const wantAudio = flags.has("record-audio");
-  const wantMenu = !flags.has("no-preview");
-  if (!wantMenu && !wantAudio) return false;
-  return { audio: wantAudio, secondsPerTune: UI_SECONDS_PER_TUNE };
-}
-
 async function cmdConvert(opts) {
   const {
     flags,
@@ -387,13 +382,16 @@ async function cmdConvert(opts) {
 
   const includeSidpelk = flags.has("sidpelk");
   const { assets } = loadAssets({ sidplayPath, hexPath, includeSidpelk });
-  const previewFlags = previewOptsFromFlags(flags);
+  const previewFlags = previewOptsFromFlags(flags, UI_SECONDS_PER_TUNE);
   let preview = false;
   if (previewFlags) {
     const { previewSsdStage } = await import("./preview/node/stage.js");
     preview = {
+      audio: previewFlags.audio,
+      tunePreviews: previewFlags.tunePreviews,
       stage: previewSsdStage({
         audio: previewFlags.audio,
+        tunePreviews: previewFlags.tunePreviews,
         secondsPerTune: previewFlags.secondsPerTune,
       }),
     };

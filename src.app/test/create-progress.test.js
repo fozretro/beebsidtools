@@ -76,12 +76,18 @@ test("buildCreateJob transfers SID and player buffers", () => {
     assets: { sidplay },
     title: "BEEBSID",
   });
-  // Then SID + player are transferable and preview is reserved
+  // Then SID + player are transferable and menu + one WAV are reserved
   assert.equal(message.progressExtra, 2);
   assert.equal(message.inputs[0].baseName, "Tune");
   assert.equal(message.inputs[0].playSeconds, 90);
   assert.equal(transfer.length, 2);
   for (const buf of transfer) assert.ok(buf instanceof ArrayBuffer);
+  const noClips = buildCreateJob({
+    inputs: [{ sid, baseName: "Tune" }],
+    assets: { sidplay },
+    tunePreviews: false,
+  });
+  assert.equal(noClips.message.progressExtra, 1);
 });
 
 test("cloneWorkerResult drops the custom log.push so postMessage can clone it", () => {

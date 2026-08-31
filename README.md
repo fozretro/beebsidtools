@@ -102,7 +102,8 @@ Useful flags:
 | `--songlengths=PATH` | HVSC `Songlengths.md5` for auto-play times (also found by walking up from each `.sid`) |
 | `--no-songlengths` | Always use the 3:00 auto-play default |
 | `--no-preview` | Skip the menu screenshot |
-| `--record-audio` | Also write short preview WAVs |
+| `--tune-previews` / `--record-audio` | Also write short preview WAVs |
+| `--no-tune-previews` | Menu shot only (no WAV clips) |
 | `--no-patch` | Skip built-in hardware patches |
 | `--page=HH` / `--sid-dest=HHHH` | Relocate dest page / BeebSID address (convert experiments; defaults `$1A` / `$FC20`) |
 | `--no-keep-zp` / `--zp=LO-HI` | Remap zero-page (default is keep; SIDPLAY saves/restores `$70`–`$FF`) |

@@ -81,7 +81,7 @@ pre-patch → relocate → post-patch → rip
 
 A hash-selected patch may run **before** relocate (mutate the original SID; may set `relocOpts`), **replace** the convert path with a listing `.bbcsid` (Golden Axe song 0), or **after** relocate (mutate the relocated SID). `--no-patch` skips all three but still relocates and rips. Relocate writes `.rel.sid`, `.brk`, and `.err`. Rip writes `.bbcsid` and `.vars`. `.patched.sid` appears only when a pre/post patch actually ran.
 
-`./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--record-audio`). A tune that fails relocate, rip, or the RAM budget is **skipped** (warning in the log) and the disc still packs. Unpatched **RSID** files are skipped the same way (`RSID — needs a manual patch`); a hash patch (RoboCop) is required before SIDPLAY can call play. `./create convert` still **fails** on the first bad tune. If every tune is skipped, pack fails.
+`./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--tune-previews` / `--record-audio`). A tune that fails relocate, rip, or the RAM budget is **skipped** (warning in the log) and the disc still packs. Unpatched **RSID** files are skipped the same way (`RSID — needs a manual patch`); a hash patch (RoboCop) is required before SIDPLAY can call play. `./create convert` still **fails** on the first bad tune. If every tune is skipped, pack fails.
 
 | File | From | Use by | Contents |
 |------|------|--------|----------|

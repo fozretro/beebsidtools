@@ -8,16 +8,18 @@
 
 import { captureSsdPreview, UI_SECONDS_PER_TUNE } from "./capture.js";
 import { previewProgressUpdate, reportProgress } from "../../progress.js";
+import { wantTunePreviews } from "../../tunePreviews.js";
 
 /**
  * @param {object} [opts]
  * @param {boolean} [opts.audio=true]
+ * @param {boolean} [opts.tunePreviews]
  * @param {number} [opts.secondsPerTune]
  * @param {string} [opts.romBaseUrl]
  * @param {(opts: object) => Promise<object>} [opts.capture]
  */
 export function previewSsdStage(opts = {}) {
-  const audio = opts.audio !== false;
+  const audio = wantTunePreviews(opts);
   const secondsPerTune = opts.secondsPerTune;
   const romBaseUrl = opts.romBaseUrl;
   const captureFn = opts.capture;

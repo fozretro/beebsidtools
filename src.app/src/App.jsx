@@ -16,6 +16,11 @@ import { TOOLS_VERSION } from "./versions.js";
 import { formatReleaseNotes } from "./releaseNotes.js";
 import { createDiscInWorker } from "./createInWorker.js";
 import { formatCreateProgress } from "./createProgress.js";
+import {
+  loadCreateOptions,
+  saveCreateOptions,
+} from "./createOptions.js";
+import OptionsModal from "./OptionsModal.jsx";
 
 function formatColumns(rows, sep = " · ") {
   const widths = [];
@@ -46,6 +51,7 @@ const HELP_TEXT = [
   "Return while playing skips, Escape returns to the menu.",
   ", / . or ‹ › change song and leave auto-play.",
   "Create converts in the background; the bar above the log shows progress.",
+  "Options under the SID list turns tune preview clips on or off; kept in this browser.",
   "f3 Test Disc boots the disc you just created, or Load disc / drop an .ssd.",
   "Gallery shows sample discs; click a screenshot to boot it. Save Disc downloads the loaded .ssd.",
   "Upgrade puts the current player on that disc and adds play times if missing, then reboots.",
@@ -134,6 +140,8 @@ export default function App() {
   const [liveOpen, setLiveOpen] = useState(false);
   const [liveAudioCtx, setLiveAudioCtx] = useState(null);
   const [hvscOpen, setHvscOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [createOptions, setCreateOptions] = useState(loadCreateOptions);
   const logRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -245,10 +253,14 @@ export default function App() {
   async function onCreate() {
     if (!files.length) return;
     setBusy(true);
+    const tunePreviews = createOptions.tunePreviews;
     setProgress({
       phase: "load",
       current: 0,
-      total: progressTotal(files.length, previewStepCount(files.length)),
+      total: progressTotal(
+        files.length,
+        previewStepCount(files.length, { tunePreviews }),
+      ),
       label: "assets",
     });
     setError("");
@@ -292,12 +304,14 @@ export default function App() {
         inputs,
         assets,
         title: "BEEBSID",
+        tunePreviews,
         onLog: appendLog,
         onProgress: setProgress,
       });
 
       const previewed = await previewSsdStage({
-        audio: true,
+        audio: tunePreviews,
+        tunePreviews,
         secondsPerTune: UI_SECONDS_PER_TUNE,
         romBaseUrl: publicUrl("jsbeeb/"),
       }).run(
@@ -307,10 +321,12 @@ export default function App() {
           inputs,
           progressTotal: progressTotal(
             inputs.length,
-            previewStepCount(inputs.length),
+            previewStepCount(inputs.length, { tunePreviews }),
           ),
-          previewSteps: previewStepCount(packed.tunes.length),
-          previewAudio: true,
+          previewSteps: previewStepCount(packed.tunes.length, {
+            tunePreviews,
+          }),
+          previewAudio: tunePreviews,
           onLog: appendLog,
           onProgress: setProgress,
         }),
@@ -540,6 +556,16 @@ export default function App() {
                 <div className="file-listing__empty">No files</div>
               )}
             </div>
+            <div className="drop-options">
+              <button
+                type="button"
+                className={`file-btn ${optionsOpen ? "file-btn--on" : ""}`}
+                disabled={busy}
+                onClick={() => setOptionsOpen(true)}
+              >
+                Options
+              </button>
+            </div>
           </div>
 
           <div className="panel-inner log-panel">
@@ -573,7 +599,11 @@ export default function App() {
         </section>
 
         <section className="chrome-panel right-panel">
-          <div className="panel-inner preview-grid">
+          <div
+            className={`panel-inner preview-grid${
+              createOptions.tunePreviews ? "" : " preview-grid--shots-only"
+            }`}
+          >
             <div className="preview-left">
               <figure className="beeb-shot">
                 {menuUrl ? (
@@ -591,33 +621,35 @@ export default function App() {
               </figure>
             </div>
 
-            <div className="preview-tunes">
-              <div className="tunes-log mode7" aria-label="Tune previews">
-                <div className="tunes-log__prompt">&gt; *PREVIEW</div>
-                {audioUrls.length ? (
-                  audioUrls.map((a, i) => (
-                    <div key={a.url} className="tunes-log__entry">
-                      <div className="tunes-log__line">
-                        <span className="tunes-log__idx">
-                          {String(i).padStart(2, "0")}
-                        </span>
-                        <span className="tunes-log__name">{a.name}</span>
+            {createOptions.tunePreviews ? (
+              <div className="preview-tunes">
+                <div className="tunes-log mode7" aria-label="Tune previews">
+                  <div className="tunes-log__prompt">&gt; *PREVIEW</div>
+                  {audioUrls.length ? (
+                    audioUrls.map((a, i) => (
+                      <div key={a.url} className="tunes-log__entry">
+                        <div className="tunes-log__line">
+                          <span className="tunes-log__idx">
+                            {String(i).padStart(2, "0")}
+                          </span>
+                          <span className="tunes-log__name">{a.name}</span>
+                        </div>
+                        <audio
+                          className="tunes-log__player"
+                          controls
+                          src={a.url}
+                          preload="metadata"
+                        />
                       </div>
-                      <audio
-                        className="tunes-log__player"
-                        controls
-                        src={a.url}
-                        preload="metadata"
-                      />
+                    ))
+                  ) : (
+                    <div className="tunes-log__empty">
+                      Create disc for tune previews
                     </div>
-                  ))
-                ) : (
-                  <div className="tunes-log__empty">
-                    Create disc for tune previews
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </section>
       </div>
@@ -635,6 +667,12 @@ export default function App() {
         onAddFiles={onFiles}
         onRemoveFile={onRemoveHvsc}
         onLog={(line) => setLog((prev) => (prev ? `${prev}\n${line}` : line))}
+      />
+      <OptionsModal
+        open={optionsOpen}
+        options={createOptions}
+        onChange={(next) => setCreateOptions(saveCreateOptions(next))}
+        onClose={() => setOptionsOpen(false)}
       />
     </div>
   );
