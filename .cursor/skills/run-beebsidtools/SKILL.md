@@ -60,7 +60,7 @@ npm run dev:app          # same as ./app, default Vite port 5173
 App convert/pack runs in a worker (`createSsd` without preview). Preview
 must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
 
-Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f9 Credits, f0 Help (version + release notes).
+Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f4 Options, f9 Credits, f0 Help (version + release notes).
 
 ## Tests
 

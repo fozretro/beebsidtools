@@ -378,14 +378,6 @@ body {
   scrollbar-color: #8b795d #000;
 }
 
-.drop-options {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin-top: 0.45rem;
-}
-
 .file-listing__prompt {
   color: #fff;
   margin-bottom: 0.35rem;

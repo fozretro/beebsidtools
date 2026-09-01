@@ -53,7 +53,7 @@ Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`
 `DOCUMENTS/Songlengths.md5` when that file is in the tree (Time column). First
 run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
 
-Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits, **f0** Help (version and release notes). Test Disc plays floppy sounds while the disc loads (Options can silence them).
+Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f4** Options, **f9** Credits, **f0** Help (version and release notes). Test Disc plays floppy sounds while the disc loads (Options can silence them).
 
 On the SIDPLAY menu (Test Disc or a real Beeb): **Return** plays the highlighted
 tune, **A** auto-plays each default song then the next (wraps), **Return** while

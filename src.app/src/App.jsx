@@ -39,8 +39,8 @@ const HELP_TEXT = [
   "",
   ...formatColumns([
     ["f1 Create Disc", "f2 Download Disc", "f3 Test Disc (or load .ssd)"],
-    ["f5 Clear list", "f6/f7 Move selected", "f8 Remove selected"],
-    ["f9 Credits", "f0 Help"],
+    ["f4 Options", "f5 Clear list", "f6/f7 Move selected"],
+    ["f8 Remove selected", "f9 Credits", "f0 Help"],
   ]),
   "",
   "Drop .sid files, Choose files, or HVSC to browse a local collection.",
@@ -51,7 +51,7 @@ const HELP_TEXT = [
   "Return while playing skips, Escape returns to the menu.",
   ", / . or ‹ › change song and leave auto-play.",
   "Create converts in the background; the bar above the log shows progress.",
-  "Options under the SID list turns tune preview clips and Test Disc noises on or off; kept in this browser.",
+  "f4 Options turns tune preview clips and Test Disc noises on or off; kept in this browser.",
   "f3 Test Disc boots the disc you just created, or Load disc / drop an .ssd.",
   "Floppy sounds play while that disc loads so the menu is not mistaken for a crash (Options can silence them).",
   "Gallery shows sample discs; click a screenshot to boot it. Save Disc downloads the loaded .ssd.",
@@ -392,9 +392,9 @@ export default function App() {
     },
     {
       id: "f4",
-      label: "Refresh List",
+      label: "Options",
       disabled: busy,
-      run: () => fileInputRef.current?.click(),
+      run: () => setOptionsOpen(true),
     },
     { id: "f5", label: "Clear List", disabled: busy || !files.length, run: clearList },
     {
@@ -455,8 +455,8 @@ export default function App() {
           <div className="title-copy">
             <h1 className="title-slot">BeebSID Disc Creator</h1>
             <p className="subtitle-slot">
-              Drop SID music files to build a disc you can download and preview
-              here.
+              Load SID music files to build a disc you can test here or
+              download to run on a real BBC Micro.
             </p>
           </div>
           <pre className="version-slot" aria-label="BeebSID Tools version">
@@ -509,6 +509,14 @@ export default function App() {
             }}
           >
             <p className="drop-line">
+              <button
+                type="button"
+                className="file-btn"
+                disabled={busy}
+                onClick={() => setHvscOpen(true)}
+              >
+                HVSC
+              </button>
               <label className={`file-btn ${busy ? "file-btn--disabled" : ""}`}>
                 Choose files
                 <input
@@ -547,24 +555,6 @@ export default function App() {
               ) : (
                 <div className="file-listing__empty">No files</div>
               )}
-            </div>
-            <div className="drop-options">
-              <button
-                type="button"
-                className="file-btn"
-                disabled={busy}
-                onClick={() => setHvscOpen(true)}
-              >
-                HVSC
-              </button>
-              <button
-                type="button"
-                className={`file-btn ${optionsOpen ? "file-btn--on" : ""}`}
-                disabled={busy}
-                onClick={() => setOptionsOpen(true)}
-              >
-                Options
-              </button>
             </div>
           </div>
 
