@@ -8,5 +8,6 @@
 | [rules/historic-conversations.mdc](rules/historic-conversations.mdc) | Lifted Cursor chats in `.tmp/conversations/` |
 | [ARCHITECTURE.md](../ARCHITECTURE.md) | Longer lineage / design narrative |
 | [skills/run-beebsidtools/](skills/run-beebsidtools/) | CLI + React run/test workflow |
+| [skills/upgrade-beebsid-disc/](skills/upgrade-beebsid-disc/) | M.MENU format + `create upgrade` lockstep |
 
 Rules live in this directory (workspace root `.cursor/`). Historic parent-project chats are local-only under `.tmp/conversations/` (gitignored); see that rule before reconstructing “why”.

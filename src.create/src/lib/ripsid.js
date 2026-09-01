@@ -13,8 +13,12 @@ export const SID_BASE = 0xfc20;
 export const GATE_PULSE_BASE = 0x0740;
 export const BRK_TAB_SIZE = 8;
 export const BRK_TAB_SIZE_GATE = 22;
+export const BRK_TAB_SIZE_RMW = 16;
+export const BRK_TAB_SIZE_RMW_GATE = 24;
 
 const STORE_OPS = new Set([0x8c, 0x8d, 0x8e, 0x99, 0x9d]);
+/** INC/DEC abs and abs,X — C64 bus-trick SID writes (e.g. Fred Gray Firefly). */
+const RMW_OPS = new Set([0xce, 0xde, 0xee, 0xfe]);
 
 function gateVoice(sidAddr) {
   const reg = sidAddr - SID_BASE;
@@ -24,18 +28,19 @@ function gateVoice(sidAddr) {
   return -1;
 }
 
-function stubSize(entry) {
-  const sidAddr = entry.op1 | (entry.op2 << 8);
-  return gateVoice(sidAddr) >= 0 ? BRK_TAB_SIZE_GATE : BRK_TAB_SIZE;
+function isRmw(opcode) {
+  return RMW_OPS.has(opcode);
 }
 
-function emitStub(entry) {
+function stubSize(entry) {
   const sidAddr = entry.op1 | (entry.op2 << 8);
-  const shAddr = sidAddr - SID_BASE + SID_SHADOW;
-  const voice = gateVoice(sidAddr);
-  const size = stubSize(entry);
-  const out = [];
+  const gate = gateVoice(sidAddr) >= 0;
+  if (isRmw(entry.opcode)) return gate ? BRK_TAB_SIZE_RMW_GATE : BRK_TAB_SIZE_RMW;
+  return gate ? BRK_TAB_SIZE_GATE : BRK_TAB_SIZE;
+}
 
+function emitStoreStub(entry, shAddr, sidAddr, voice, size) {
+  const out = [];
   out.push(entry.opcode, shAddr & 0xff, (shAddr >> 8) & 0xff);
   out.push(entry.opcode, entry.op1, entry.op2);
 
@@ -55,6 +60,40 @@ function emitStub(entry) {
 
   out.push(0x60); // RTS
   while (out.length < size) out.push(0);
+  return out;
+}
+
+function emitRmwStub(entry, shAddr, sidAddr, voice, size) {
+  const indexed = entry.opcode === 0xfe || entry.opcode === 0xde;
+  const inc = entry.opcode === 0xee || entry.opcode === 0xfe;
+  const rmwOp = inc ? (indexed ? 0xfe : 0xee) : indexed ? 0xde : 0xce;
+  const ldaOp = indexed ? 0xbd : 0xad;
+  const staOp = indexed ? 0x9d : 0x8d;
+  const out = [];
+  out.push(rmwOp, shAddr & 0xff, (shAddr >> 8) & 0xff);
+  out.push(0x08, 0x48); // PHP PHA — keep INC/DEC flags
+  out.push(ldaOp, shAddr & 0xff, (shAddr >> 8) & 0xff);
+  out.push(staOp, sidAddr & 0xff, (sidAddr >> 8) & 0xff);
+  if (voice >= 0) {
+    const pulse = GATE_PULSE_BASE + voice;
+    out.push(0x29, 0x01);
+    out.push(0xd0, 0x05);
+    out.push(0xa9, 0x01);
+    out.push(0x8d, pulse & 0xff, (pulse >> 8) & 0xff);
+  }
+  out.push(0x68, 0x28, 0x60); // PLA PLP RTS
+  while (out.length < size) out.push(0);
+  return out;
+}
+
+function emitStub(entry) {
+  const sidAddr = entry.op1 | (entry.op2 << 8);
+  const shAddr = sidAddr - SID_BASE + SID_SHADOW;
+  const voice = gateVoice(sidAddr);
+  const size = stubSize(entry);
+  const out = isRmw(entry.opcode)
+    ? emitRmwStub(entry, shAddr, sidAddr, voice, size)
+    : emitStoreStub(entry, shAddr, sidAddr, voice, size);
   return Buffer.from(out);
 }
 
@@ -122,7 +161,7 @@ export function ripSid(sidData, brkText) {
     const opcode = sid[dataoffs + addr];
     const op1 = sid[dataoffs + addr + 1];
     const op2 = sid[dataoffs + addr + 2];
-    if (!STORE_OPS.has(opcode)) {
+    if (!STORE_OPS.has(opcode) && !RMW_OPS.has(opcode)) {
       log(
         `echo "Unknown opcode at ${addr.toString(16).padStart(4, "0")}=${opcode
           .toString(16)

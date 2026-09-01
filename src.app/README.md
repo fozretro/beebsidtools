@@ -1,7 +1,8 @@
 # BeebSID Disc Creator
 
-React UI over the create engine. Drag-drop SIDs → **in-browser** `createSsd`
-with turbo preview from `beebsidtools-src-create/preview/browser`.
+React UI over the create engine. Drag-drop SIDs → worker `createSsd`
+(convert/pack) then turbo preview on the UI thread from
+`beebsidtools-src-create/preview/browser`.
 
 CLI uses `preview/node` (`MachineSession` + `sharp`).
 
@@ -18,5 +19,5 @@ GitHub Pages (from `main`): <https://fozretro.github.io/beebsidtools/>
 - [x] Turbo menu image + per-tune audio (`preview/browser`)
 - [x] Download `.ssd`
 - [x] Live Preview modal (jsbeeb + BeebSID audio)
-- [x] Sync `sidpl.o` + jsbeeb ROMs into `public/`
+- [x] Sync `sidpl.o` + jsbeeb ROMs + disc525 samples + sample gallery into `public/`
 - [x] Node preview host unchanged for CLI

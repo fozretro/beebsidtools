@@ -251,6 +251,14 @@ SID_BASE        = $FC20
                 jmp     menu_loop
 
 .men_dn
+        clc
+                lda     menu_sel
+                adc     menu_off
+                adc     #1
+                cmp     menu            ; next index >= catalogue count
+                bcc     men_dn_ok
+                jmp     menu_loop
+.men_dn_ok
         inc     menu_sel
                 lda     #9              ;entries on screen
                 cmp     menu_sel

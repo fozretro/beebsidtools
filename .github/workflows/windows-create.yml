@@ -1,0 +1,35 @@
+# First-run create.cmd (issue #18). Default shell on windows-latest is
+# PowerShell — keep shell: cmd so this is real cmd.exe.
+name: windows-create
+
+on:
+  pull_request:
+  push:
+    branches: [main, 0.3.0]
+  workflow_dispatch:
+
+jobs:
+  create-cmd:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: src.create/package-lock.json
+
+      - name: First-run convert
+        shell: cmd
+        run: create.cmd convert sids\Cybernoid.sid -o %TEMP%\cyber
+
+      - name: Convert wrote a .bbcsid
+        shell: cmd
+        run: if not exist %TEMP%\cyber\Cybernoid.bbcsid exit /b 1
+
+      - name: Upload first-run logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: create-logs
+          path: logs/

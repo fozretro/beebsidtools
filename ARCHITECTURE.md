@@ -56,7 +56,7 @@ src.app/               BeebSID Disc Creator (Vite/React)
 
 ### create
 
-In-memory stages: `pre-patch → relocate → post-patch → rip`, then `pack-ssd`, optional `preview-ssd`.
+In-memory stages: `pre-patch → relocate → post-patch → rip`, then `pack-ssd`, optional `preview-ssd`. A **replace** patch (Golden Axe) supplies a listing `.bbcsid` and skips relocate/rip.
 
 - **API:** `convertSid` / `convertSids` / `createSsd` / `runPipeline`
 - **CLI:** only filesystem boundary (read `.sid`, write convert outputs — see below)
@@ -69,7 +69,7 @@ BeebAsm port of classic SIDPLAY (BBC Mode 7) and SIDPELK (Electron). Build produ
 
 ### app
 
-Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, screenshots, tune WAVs, Test Disc (live jsbeeb). Sync scripts copy player binaries and jsbeeb ROMs/sounds into `public/`.
+Thin UI: drag-drop SIDs → worker `createSsd` (convert/pack) + main-thread `preview/browser` → download SSD, screenshots, tune WAVs, Test Disc (live jsbeeb). Sync scripts copy player binaries and jsbeeb ROMs/sounds into `public/`.
 
 ## Create Tool Output
 
@@ -79,9 +79,9 @@ Thin UI: drag-drop SIDs → `createSsd` + `preview/browser` → download SSD, sc
 pre-patch → relocate → post-patch → rip
 ```
 
-A hash-selected patch may run **before** relocate (mutate the original SID; may set `relocOpts`) or **after** (mutate the relocated SID). `--no-patch` skips both but still relocates and rips. Relocate writes `.rel.sid`, `.brk`, and `.err`. Rip writes `.bbcsid` and `.vars`. `.patched.sid` appears only when a patch actually ran.
+A hash-selected patch may run **before** relocate (mutate the original SID; may set `relocOpts`), **replace** the convert path with a listing `.bbcsid` (Golden Axe song 0), or **after** relocate (mutate the relocated SID). `--no-patch` skips all three but still relocates and rips. Relocate writes `.rel.sid`, `.brk`, and `.err`. Rip writes `.bbcsid` and `.vars`. `.patched.sid` appears only when a pre/post patch actually ran.
 
-`./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--record-audio`). A tune that fails relocate, rip, or the RAM budget is **skipped** (warning in the log) and the disc still packs. Unpatched **RSID** files are skipped the same way (`RSID — needs a manual patch`); a hash patch (RoboCop) is required before SIDPLAY can call play. `./create convert` still **fails** on the first bad tune. If every tune is skipped, pack fails.
+`./create ssd` / `createSsd` does that per tune, then **pack-ssd** (player + catalogue → `.ssd`) and optional **preview-ssd** (`menu.png`; WAVs with `--tune-previews` / `--record-audio`). A tune that fails relocate, rip, or the RAM budget is **skipped** (warning in the log) and the disc still packs. Unpatched **RSID** files are skipped the same way (`RSID — needs a manual patch`); a hash patch (RoboCop) is required before SIDPLAY can call play. `./create convert` still **fails** on the first bad tune. If every tune is skipped, pack fails.
 
 | File | From | Use by | Contents |
 |------|------|--------|----------|
@@ -89,7 +89,7 @@ A hash-selected patch may run **before** relocate (mutate the original SID; may 
 | `<stem>.rel.sid` | sidreloc | Rip; goldens | Relocated PSID (load `$1A00`, SID pokes `$FC20`) |
 | `<stem>.brk` | sidreloc | Rip; goldens | `----DOM:BRK:<offset>:<opcode>` list of SID **store** sites; ripsid turns these into dual-write / GATE_PULSE trampolines |
 | `<stem>.err` | sidreloc stderr | Humans (debug) | Analysis + **verify**: original `$D400` vs relocated `$FC20` SID shadow. `force: true` logs mismatches instead of aborting. Pitch/pulse-width diffs are counted; filter/volume/control diffs print `Wrong SID state!`. The address in that line is **dest page + register index** (C64 `$d418` style), not `$FC20+index` — register `$18` (mode/volume) is `$FC38` on BeebSID, printed as `$fc18`. Huge `.err` files (e.g. RoboCop subtunes 6–7) are usually one volume off-by-one repeated every play frame. |
-| `<stem>.bbcsid` | ripsid | Pack SSD / SIDPLAY | BBC load image — see **`.bbcsid` layout** below |
+| `<stem>.bbcsid` | ripsid, or a replace patch | Pack SSD / SIDPLAY | BBC load image — see **`.bbcsid` layout** below |
 | `<stem>.vars` | ripsid | Humans (debug) | Text log of trampoline layout / addresses |
 
 ### `.bbcsid` layout
@@ -193,7 +193,7 @@ jsbeeb emulates the BBC SN76489 (and Music 5000). It does not emulate BeebSID. H
 - **Turbo capture** — accelerated `runFor` for menu/`*CAT`/`*FREE` PNGs and per-tune WAVs (`recordAudio.js`).
 - **Live Test Disc** — same browser session, then realtime: `requestAnimationFrame` + canvas paint + keyboard (`src.app/src/livePreview.js`).
 
-Live looks like extra plumbing because the test/headless machine is reused instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). Keys go through the session `keyDown`/`keyUp` (browser `keyCode`), not jsbeeb’s `Keyboard`. Drive samples are left as `TestMachine`’s `FakeDdNoise`. FastSID is a live variant of the same `$FC20` hook used for WAV capture. The app must not import jsbeeb — only `preview/browser`.
+Live looks like extra plumbing because the test/headless machine is reused instead of jsbeeb’s website wiring (`AudioHandler` + canvas in `main.js`). Keys go through the session `keyDown`/`keyUp` (browser `keyCode`), not jsbeeb’s `Keyboard`. Drive samples: `TestMachine` always installs `FakeDdNoise` (the FDC closes over that object); Test Disc fetches `disc525` WAVs (`fetch` + `decodeAudioData`, not jsbeeb’s XHR loader) and patches the stub before `bootToMenu`. FastSID is a live variant of the same `$FC20` hook used for WAV capture. The app must not import jsbeeb — only `preview/browser`.
 
 An iframe of bbc.xania.org would not take an in-memory SSD just built, would not map BeebSID `$FC20`, and would not honour the `B1770` preview contract.
 
@@ -210,6 +210,7 @@ These jsbeeb entry points are imported from the preview hosts only (never the we
 | `jsbeeb/src/video.js` (`Video`) | <ul style="white-space:nowrap"><li>`new Video(…)` (framebuffer + paint callback)</li><li>`leftBorder`</li><li>`topBorder`</li><li>`rightBorder`</li><li>`bottomBorder`</li></ul> | browser session |
 | `jsbeeb/src/soundchip.js` | <ul style="white-space:nowrap"><li>`new InstrumentedSoundChip()`</li><li>`new FakeSoundChip()` (passed into `TestMachine`; SN76489, not BeebSID)</li></ul> | browser session |
 | `jsbeeb/src/fdc.js` (`discFor`) | <ul style="white-space:nowrap"><li>`discFor(fdc, name, bytes)`</li></ul> | browser session |
+| `jsbeeb/src/ddnoise.js` (`DdNoise`) | <ul style="white-space:nowrap"><li>`new DdNoise(audioCtx, destination)` then assign `.sounds` (Vite cannot use `loadSounds`)</li></ul> | browser session (Test Disc) |
 
 ## Do not regress
 

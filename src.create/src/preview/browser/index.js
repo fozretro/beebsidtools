@@ -6,6 +6,7 @@ export { UI_SECONDS_PER_TUNE, GOLDEN_SECONDS } from "../contract.js";
 export { captureSsdPreview } from "./capture.js";
 export { previewSsdStage } from "./stage.js";
 export { MachineSession, DEFAULT_ROM_BASE } from "./machineSession.js";
+export { attachDiscDriveNoise, loadDisc525Sounds } from "./ddNoise.js";
 export {
   recordFromSession,
   pressReturn,

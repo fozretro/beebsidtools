@@ -1,10 +1,11 @@
 ---
 name: release-beebsidtools
 description: >-
-  Cut a lockstep BeebSID Tools release (notes, version bump, PR into main,
-  GitHub tag, Pages). Use when the user asks to release, publish, cut a
-  version, write release notes, run sync-versions or publish-release, or
-  what to do with a version branch such as 0.2.0.
+  Cut a lockstep BeebSID Tools release (notes, version bump, sample discs,
+  Gallery shots, PR into main, GitHub tag, Pages). Use when the user asks
+  to release, publish, cut a version, stamp a version, write release notes,
+  run sync-versions or publish-release, recapture gallery screenshots for a
+  release, or what to do with a version branch such as 0.2.0.
 ---
 
 # Release BeebSID Tools
@@ -87,6 +88,45 @@ even if create packs the seconds.
 
 Show the draft and wait before the version bump.
 
+## Sample discs and Gallery
+
+Test Disc **Gallery** does not read `discs/` live. It fetches
+`src.app/public/gallery/` (gitignored), which `sync:gallery` copies from
+`discs/*.ssd` + `discs/*.png`. `./app` syncs once at start (`predev`).
+A later `create upgrade` leaves that copy and the PNG thumbs on the old
+SIDPLAY — including the on-screen `X.Y.Z`.
+
+Do this **after** the version bump and player rebuild (SIDPLAY embeds the
+root version). Never upgrade or recapture before the bump, or the samples
+still say the previous release.
+
+```text
+root package.json version
+        │
+        ▼
+npm run build:player          → sidpl.o / sidpelk.o (version.asm)
+        │
+        ▼
+./create upgrade discs/*.ssd  → sample SSDs carry this SIDPLAY
+        │
+        ├─ npm run capture:gallery --prefix src.app -- --force
+        │     → discs/<stem>.png (menu shot, version visible)
+        └─ npm run sync --prefix src.app
+              → public/player/ + public/gallery/
+```
+
+```bash
+for f in discs/*.ssd; do ./create upgrade "$f"; done
+npm run capture:gallery --prefix src.app -- --force
+npm run sync --prefix src.app
+```
+
+`--force` is required: capture skips a stem when `discs/<stem>.png`
+already exists. Convert leftovers belong in `out/`, never next to these
+`.ssd` files. “already current” on every disc is fine — still run the
+loop. Commit `discs/*.ssd` and `discs/*.png` that changed. `public/gallery/`
+is generated; Pages gets it from `sync` on the app build.
+
 ## End-to-end (including git)
 
 Work from the repo root. `X.Y.Z` is the version being cut (e.g. `0.2.0`).
@@ -96,26 +136,35 @@ Work from the repo root. `X.Y.Z` is the version being cut (e.g. `0.2.0`).
 2. **Notes** — draft `releases/X.Y.Z.md` with the rules above; stop for
    review before bumping.
 3. **Bump** — set root `package.json` `"version"` to `X.Y.Z`.
-4. **Sync** — `npm run sync-versions` (must reprint all three targets).
-5. **Commit** on the current branch (notes + four `package.json` files).
-   Message like `Release X.Y.Z.` — why, not a file list.
-6. **Push the branch** — `git push -u origin HEAD` if untracked, else
+4. **Sync versions** — `npm run sync-versions` (must reprint all three
+   targets).
+5. **Rebuild player** — `npm run build:player` so `version.asm` is `X.Y.Z`.
+   Then `npm run update:golden-player`. If pack bytes change,
+   `npm run update:golden-ssd`.
+6. **Samples + Gallery** — upgrade `discs/`, recapture menu shots, sync
+   the app (commands in **Sample discs and Gallery**). Spot-check one
+   Gallery thumb and one booted disc for `X.Y.Z`.
+7. **Commit** on the current branch (notes, four `package.json` files,
+   player goldens, `discs/*.ssd`, `discs/*.png`). Message like
+   `Release X.Y.Z.` — why, not a file list.
+8. **Push the branch** — `git push -u origin HEAD` if untracked, else
    `git push`.
-7. **PR into `main`** — `gh pr create` (title + why). Do not target the
+9. **PR into `main`** — `gh pr create` (title + why). Do not target the
    version branch as the base.
-8. **Merge** when CI is green and the user wants it shipped
-   (`gh pr merge` or GitHub UI).
-9. **Update local `main`** — `git checkout main && git pull`.
-10. **Publish** — on that `main` commit, `npm run publish-release`
+10. **Merge** when CI is green and the user wants it shipped
+    (`gh pr merge` or GitHub UI).
+11. **Update local `main`** — `git checkout main && git pull`.
+12. **Publish** — on that `main` commit, `npm run publish-release`
     (`gh release create vX.Y.Z --title "BeebSID Tools X.Y.Z" --notes-file
     releases/X.Y.Z.md`).
-11. **Pages** — the merge already queued the workflow. Confirm Actions if
+13. **Pages** — the merge already queued the workflow. Confirm Actions if
     asked. No extra deploy command.
-12. **Delete the feature branch** if the user wants it gone.
+14. **Delete the feature branch** if the user wants it gone.
 
-Bumping after merge is fine: do steps 2–5 on `main` after step 9, push, then
-publish. Same end state. Do **not** run `publish-release` from an unmerged
-branch — the tag would exist while Pages still served the previous `main`.
+Bumping after merge is fine: do steps 2–7 on `main` after step 11, push,
+then publish. Same end state. Do **not** run `publish-release` from an
+unmerged branch — the tag would exist while Pages still served the
+previous `main`.
 
 ## Branch named like the version
 
@@ -131,6 +180,9 @@ then tag from the commit that actually landed on `main`.
 - Skip hooks (`--no-verify`)
 - Publish before the version commit is on `origin/main`
 - Jump to `1.0.0` because the number feels ready
+- Ship a player or menu-format change without upgrading `discs/*.ssd`
+- Stamp a version without recapturing `discs/*.png` and syncing Gallery
+  (`public/gallery/` will still boot and show the previous SIDPLAY)
 
 ## More context
 
@@ -138,3 +190,7 @@ then tag from the commit that actually landed on `main`.
 - Human summary: [`CONTRIBUTING.md`](../../CONTRIBUTING.md) (Releases)
 - Scripts: `scripts/sync-versions.js`, `scripts/publish-release.js`
 - Help wiring: `src.app/src/releaseNotes.js`, `src.app/src/versions.js`
+- Menu / `create upgrade` lockstep: `../upgrade-beebsid-disc/SKILL.md`
+- Tests / goldens: `../test-beebsidtools/SKILL.md`
+- Gallery copy / capture: `src.app/scripts/sync-gallery.js`,
+  `src.app/scripts/capture-gallery-shots.js`

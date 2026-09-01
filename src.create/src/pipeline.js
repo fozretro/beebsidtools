@@ -26,6 +26,8 @@
  * @property {Buffer} [menu]
  * @property {string[]} log
  * @property {(line: string) => void} [onLog]
+ * @property {(info: { phase: string, current: number, total: number, label?: string }) => void} [onProgress]
+ * @property {number} [progressTotal]
  * @property {Record<string, unknown>} meta
  */
 
@@ -77,6 +79,8 @@ export async function runPipeline(stages, initial) {
     ctx.log = ctx.log ?? [];
     ctx.meta = ctx.meta ?? {};
     ctx.onLog = initial.onLog ?? ctx.onLog;
+    ctx.onProgress = initial.onProgress ?? ctx.onProgress;
+    ctx.progressTotal = initial.progressTotal ?? ctx.progressTotal;
     attachLogSink(ctx);
     await yieldEventLoop();
   }

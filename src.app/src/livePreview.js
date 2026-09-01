@@ -1,6 +1,6 @@
 /**
  * In-app live jsbeeb: boot SSD to SIDPLAY, realtime video + BeebSID audio.
- * jsbeeb is reached only through preview/browser (no Keyboard / DdNoise).
+ * jsbeeb is reached only through preview/browser (no Keyboard).
  */
 
 import {
@@ -102,6 +102,7 @@ function attachBeebSidAudio(ctx, sid, cpu) {
  * @param {HTMLCanvasElement} opts.canvas
  * @param {Uint8Array|ArrayBuffer|import("buffer").Buffer} opts.discBytes
  * @param {AudioContext} [opts.audioCtx] — pass one created in a user gesture
+ * @param {boolean} [opts.discNoises] — floppy samples during load (default on)
  * @param {(text: string, isError?: boolean) => void} [opts.onStatus]
  * @returns {Promise<{ dispose: () => void }>}
  */
@@ -109,6 +110,7 @@ export async function runLivePreview({
   canvas,
   discBytes,
   audioCtx: existingCtx = null,
+  discNoises = true,
   onStatus = () => {},
 }) {
   const status = (text, isError = false) => onStatus(text, isError);
@@ -122,6 +124,13 @@ export async function runLivePreview({
     romBaseUrl: DEFAULT_ROM_BASE,
   });
   await session.initialise();
+  if (discNoises) {
+    try {
+      await session.attachDiscDriveNoise(audioCtx);
+    } catch (err) {
+      console.warn("Disc drive noise unavailable", err);
+    }
+  }
   await session.boot(30);
   status("Loading SIDPLAY menu…");
   await bootToMenu(session, { timeoutMs: 60_000 });

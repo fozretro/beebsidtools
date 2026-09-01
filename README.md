@@ -53,7 +53,7 @@ Opens a drag-and-drop UI to build a disc, hear a preview, and download an `.ssd`
 `DOCUMENTS/Songlengths.md5` when that file is in the tree (Time column). First
 run may take a minute. Pushes to `main` rebuild the Pages site (Actions).
 
-Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f9** Credits, **f0** Help (version and release notes).
+Function keys: **f1** Create, **f2** Download, **f3** Test Disc, **f4** Options, **f9** Credits, **f0** Help (version and release notes). Test Disc plays floppy sounds while the disc loads (Options can silence them).
 
 On the SIDPLAY menu (Test Disc or a real Beeb): **Return** plays the highlighted
 tune, **A** auto-plays each default song then the next (wraps), **Return** while
@@ -74,6 +74,10 @@ Sample tunes are in `sids/`. On Windows, use `.\create.cmd` in place of `./creat
 
 # Convert only (no disc) — writes BeebSID files next to -o
 ./create convert sids/Cybernoid.sid -o ~/Desktop/cyber
+
+# Put the current player on an existing disc (overwrites unless -o)
+./create upgrade ~/Desktop/hoh.ssd
+./create upgrade old.ssd -o ~/Desktop/hoh-new.ssd
 ```
 
 ```bat
@@ -98,7 +102,8 @@ Useful flags:
 | `--songlengths=PATH` | HVSC `Songlengths.md5` for auto-play times (also found by walking up from each `.sid`) |
 | `--no-songlengths` | Always use the 3:00 auto-play default |
 | `--no-preview` | Skip the menu screenshot |
-| `--record-audio` | Also write short preview WAVs |
+| `--tune-previews` / `--record-audio` | Also write short preview WAVs |
+| `--no-tune-previews` | Menu shot only (no WAV clips) |
 | `--no-patch` | Skip built-in hardware patches |
 | `--page=HH` / `--sid-dest=HHHH` | Relocate dest page / BeebSID address (convert experiments; defaults `$1A` / `$FC20`) |
 | `--no-keep-zp` / `--zp=LO-HI` | Remap zero-page (default is keep; SIDPLAY saves/restores `$70`–`$FF`) |

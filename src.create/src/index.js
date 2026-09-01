@@ -19,6 +19,13 @@ export { ripSid } from "./lib/ripsid.js";
 export { relocateSid } from "./lib/sidreloc/index.js";
 export { packBeebSidSsd, SSD_ADDR } from "./lib/ssd.js";
 export {
+  upgradeBeebSidSsd,
+  describeBeebSidUpgrade,
+  upgradeNeeded,
+  beebSidSsdError,
+  isBeebSidSsd,
+} from "./lib/upgradeSsd.js";
+export {
   TUNE_LOAD,
   SIDPLAY_LOAD,
   SIDPELK_LOAD,
@@ -37,6 +44,12 @@ export {
   DEFAULT_PLAY_SECONDS,
   MENU_BUF_SIZE,
   MENU_ENTRY_SIZE,
+  MENU_MAGIC,
+  MENU_FORMAT,
+  MENU_TRAILER_SIZE,
+  menuTrailer,
+  inspectMenu,
+  upgradeMenu,
 } from "./lib/menu.js";
 export {
   parseSonglengthsMd5,
@@ -57,6 +70,8 @@ export {
   setTitle,
   setOpt4,
   toBuffer,
+  openDisc,
+  rebuildDisc,
   DFS,
 } from "./lib/dfs.js";
 export {
@@ -71,16 +86,22 @@ export {
 export { builtinPatches as patches } from "./patches/index.js";
 export { parsePsid } from "./lib/psid.js";
 export { parseBrkList } from "./lib/brk.js";
+export {
+  progressTotal,
+  previewStepCount,
+  convertProgressUpdate,
+  packProgressUpdate,
+  previewProgressUpdate,
+  reportProgress,
+} from "./progress.js";
+export { wantTunePreviews } from "./tunePreviews.js";
+export { applyPreviewFlag, previewOptsFromFlags } from "./previewFlags.js";
 
 import { runPipeline, createContext } from "./pipeline.js";
-import { relocateStage } from "./stages/relocate.js";
-import { prePatchStage, postPatchStage } from "./stages/patch.js";
-import { ripStage } from "./stages/rip.js";
 import { convertTunesStage } from "./stages/convertTunes.js";
 import { packSsdStage } from "./stages/ssd.js";
-import { sha256Hex } from "./lib/patchRegistry.js";
-import { SIDPELK_LOAD, SIDPLAY_LOAD, assertTuneFitsRam } from "./lib/tuneRam.js";
-import { rsidNeedsManualPatch } from "./lib/rsid.js";
+import { SIDPELK_LOAD, SIDPLAY_LOAD } from "./lib/tuneRam.js";
+import { previewStepCount, progressTotal } from "./progress.js";
 
 /**
  * @param {Buffer|Uint8Array|{sid:Buffer|Uint8Array,baseName?:string,title?:string,patch?:true|string|false,dfsName?:string}|Array} inputs
@@ -108,7 +129,7 @@ export function normalizeSidInputs(inputs) {
 }
 
 /**
- * Convert a SID buffer through relocate → optional patch → rip (in-memory).
+ * Convert a SID buffer (replace replica, or relocate → optional patch → rip).
  *
  * @param {Buffer|Uint8Array} inputSid
  * @param {object} [opts]
@@ -118,47 +139,35 @@ export function normalizeSidInputs(inputs) {
  */
 export async function convertSid(inputSid, opts = {}) {
   const baseName = opts.baseName ?? "tune";
-  const buf = Buffer.from(inputSid);
-  const rsidMsg = rsidNeedsManualPatch(buf, {
-    name: baseName,
-    patch: opts.patch ?? true,
-  });
-  if (rsidMsg) throw new Error(rsidMsg);
-  const ctx = await runPipeline(
-    [
-      prePatchStage({ patch: opts.patch ?? true }),
-      relocateStage({ reloc: opts.reloc }),
-      postPatchStage({ patch: opts.patch ?? true }),
-      ripStage(),
-    ],
-    createContext({
-      baseName,
-      inputSid: buf,
-      meta: { inputSha256: sha256Hex(buf) },
-    }),
+  const { tunes, log } = await convertSids(
+    [{ sid: inputSid, baseName, patch: opts.patch }],
+    opts,
   );
-  assertTuneFitsRam(ctx.bbcSid, { name: baseName });
+  const t = tunes[0];
   return {
-    relSid: ctx.relSid,
-    brkText: ctx.brkText,
-    relocErr: ctx.relocErr,
-    patchedSid: ctx.patchedSid,
-    bbcSid: ctx.bbcSid,
-    vars: ctx.vars,
-    log: ctx.log,
-    meta: ctx.meta,
+    relSid: t.relSid,
+    brkText: t.brkText,
+    relocErr: t.relocErr,
+    patchedSid: t.patchedSid,
+    bbcSid: t.bbcSid,
+    vars: t.vars,
+    log,
+    meta: t.meta ?? {},
   };
 }
 
 /**
- * Convert one or more SIDs (relocate → patch → rip). No SSD packing.
+ * Convert one or more SIDs. No SSD packing.
  *
  * @param {Parameters<typeof normalizeSidInputs>[0]} inputs
  * @param {object} [opts]
  * @param {true|string|false} [opts.patch=true]
  * @param {object} [opts.reloc] overrides for DEFAULT_RELOC_OPTS
+ * @param {(line: string) => void} [opts.onLog]
+ * @param {(info: { phase: string, current: number, total: number, label?: string }) => void} [opts.onProgress]
  */
 export async function convertSids(inputs, opts = {}) {
+  const list = normalizeSidInputs(inputs);
   const ctx = await runPipeline(
     [
       convertTunesStage({
@@ -167,7 +176,12 @@ export async function convertSids(inputs, opts = {}) {
         onError: "fail",
       }),
     ],
-    createContext({ inputs: normalizeSidInputs(inputs) }),
+    createContext({
+      inputs: list,
+      onLog: opts.onLog,
+      onProgress: opts.onProgress,
+      progressTotal: opts.progressTotal ?? list.length,
+    }),
   );
   return { tunes: ctx.tunes, log: ctx.log, meta: ctx.meta };
 }
@@ -186,19 +200,33 @@ export async function convertSids(inputs, opts = {}) {
  * @param {boolean} [opts.includeSidpelk=false]
  * @param {boolean|{
  *   audio?: boolean,
+ *   tunePreviews?: boolean,
  *   secondsPerTune?: number,
  *   romBaseUrl?: string,
  *   stage?: { name: string, run: Function },
  * }} [opts.preview=false]
  *   When set, appends turbo preview. Pass `preview.stage` from
  *   `preview/node/stage.js` (CLI) or `preview/browser/stage.js` (app)
- *   so bundlers never pull the wrong host.
+ *   so bundlers never pull the wrong host. `audio` / `tunePreviews`
+ *   (same knob) are the mini WAV clips; menu PNG still runs when they
+ *   are off. Disc Creator default on; CLI off unless --tune-previews.
  * @param {(line: string) => void} [opts.onLog] - live log lines as the pipeline runs
+ * @param {(info: { phase: string, current: number, total: number, label?: string }) => void} [opts.onProgress]
+ * @param {number} [opts.progressExtra] reserved steps after pack (preview on another thread).
+ *   Defaults to menu + one WAV per tune when `opts.preview` is set.
  */
 export async function createSsd(inputs, opts = {}) {
   if (!opts.assets?.sidplay) {
     throw new Error("createSsd: opts.assets.sidplay required");
   }
+
+  const list = normalizeSidInputs(inputs);
+  const previewOpts = opts.preview === true ? {} : opts.preview || {};
+  const extra =
+    opts.progressExtra ??
+    (opts.preview
+      ? previewStepCount(list.length, previewOpts)
+      : 0);
 
   const stages = [
     convertTunesStage({
@@ -227,9 +255,11 @@ export async function createSsd(inputs, opts = {}) {
   const ctx = await runPipeline(
     stages,
     createContext({
-      inputs: normalizeSidInputs(inputs),
+      inputs: list,
       assets: opts.assets,
       onLog: opts.onLog,
+      onProgress: opts.onProgress,
+      progressTotal: progressTotal(list.length, extra),
       meta: {
         discTitle: opts.title ?? "BEEBSID",
         includeSidpelk: !!opts.includeSidpelk,

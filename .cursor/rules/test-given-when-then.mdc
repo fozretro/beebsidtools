@@ -1,0 +1,17 @@
+---
+description: Tests use Given / When / Then comments
+globs: "**/*.test.js"
+alwaysApply: false
+---
+
+# Given / When / Then in tests
+
+Every `test` / `it` body comments the scenario in Gherkin order:
+
+```js
+// Given <precondition>
+// When <action>
+// Then <observable result>
+```
+
+Put each comment immediately above the code it describes. A longer scenario may repeat When / Then. Do not skip the comments because the test name already reads that way.

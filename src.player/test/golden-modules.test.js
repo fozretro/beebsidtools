@@ -108,6 +108,7 @@ test(
       "need beebasm, ca65, and SIDPLAYER_GOLDEN=/path/to/sidplayer",
   },
   () => {
+    // Given BeebAsm, ca65, and a SIDPLAYER_GOLDEN tree
     mkdirSync(join(OUT, "obj"), { recursive: true });
     mustRun("make", ["-C", GOLDEN_CA65, "all"], { stdio: "ignore" });
 
@@ -138,10 +139,12 @@ test(
       false,
     );
 
+    // When each module is assembled both ways
     assembleModule("mul", join(SRC, "lib/mul.asm"));
     assembleModule("play_screen", join(OUT, "play_screen.asm"));
     assembleModule("menu_screen", join(OUT, "menu_screen.asm"));
 
+    // Then BeebAsm CODE matches ca65 CODE0
     for (const m of ["mul", "play_screen", "menu_screen"]) {
       const bePath = join(OUT, "obj", `${m}.o`);
       const be = readFileSync(bePath);

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Buffer } from "buffer";
-import { createSsd } from "beebsidtools-src-create";
+import {
+  createContext,
+  previewStepCount,
+  progressTotal,
+} from "beebsidtools-src-create";
 import {
   UI_SECONDS_PER_TUNE,
   previewSsdStage,
@@ -10,6 +14,13 @@ import HvscBrowser from "./HvscBrowser.jsx";
 import { publicUrl } from "./publicUrl.js";
 import { TOOLS_VERSION } from "./versions.js";
 import { formatReleaseNotes } from "./releaseNotes.js";
+import { createDiscInWorker } from "./createInWorker.js";
+import { formatCreateProgress } from "./createProgress.js";
+import {
+  loadCreateOptions,
+  saveCreateOptions,
+} from "./createOptions.js";
+import OptionsModal from "./OptionsModal.jsx";
 
 function formatColumns(rows, sep = " · ") {
   const widths = [];
@@ -27,17 +38,25 @@ const HELP_TEXT = [
   "BeebSID Disc Creator",
   "",
   ...formatColumns([
-    ["f1 Create Disc", "f2 Download Disc", "f3 Test Disc"],
-    ["f5 Clear list", "f6/f7 Move selected", "f8 Remove selected"],
-    ["f9 Credits", "f0 Help"],
+    ["f1 Create Disc", "f2 Download Disc", "f3 Test Disc (or load .ssd)"],
+    ["f4 Options", "f5 Clear list", "f6/f7 Move selected"],
+    ["f8 Remove selected", "f9 Credits", "f0 Help"],
   ]),
   "",
-  "Drop .sid files, Choose files, or HVSC to browse a local collection.",
-  "HVSC: folder tree, search by title/author/released/filename, Play, Add.",
-  "Play starts the SID default song; , / . or ‹ › step through songs.",
-  "SIDPLAY: Return plays, A auto-plays each default song then the next,",
-  "Return while playing skips, Escape returns to the menu.",
-  "Index stays in this browser. Play listens with Hermit jsSID.",
+  "- Drop .sid files, Choose files, or HVSC to browse a local collection.",
+  "- HVSC: folder tree, search by title/author/released/filename, Play, Add.",
+  "- Play starts the SID default song; , / . or ‹ › step through songs.",
+  "- SIDPLAY: Return plays, A auto-plays each default song then the next (MM:SS countdown on the play screen),",
+  "- Return while playing skips, Escape returns to the menu.",
+  "- , / . or ‹ › change song and leave auto-play.",
+  "- Create converts in the background; the bar above the log shows progress.",
+  "- f4 Options turns tune preview clips and Test Disc noises on or off; kept in this browser.",
+  "- f3 Test Disc boots the disc you just created, or Load disc / drop an .ssd.",
+  "- Floppy sounds play while that disc loads so the menu is not mistaken for a crash (Options can silence them).",
+  "- Gallery shows sample discs; click a screenshot to boot it. Save Disc downloads the loaded .ssd.",
+  "- Upgrade puts the current player on that disc and adds play times if missing, then reboots.",
+  "- Upgrade is off when the disc is already current.",
+  "- Index stays in this browser. Play listens with Hermit jsSID.",
   "",
   `BeebSID Tools v${TOOLS_VERSION}`,
   "",
@@ -110,6 +129,7 @@ export default function App() {
   const [files, setFiles] = useState([]);
   const [selected, setSelected] = useState(-1);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(null);
   const [log, setLog] = useState(CREDITS_TEXT);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
@@ -120,11 +140,12 @@ export default function App() {
   const [liveOpen, setLiveOpen] = useState(false);
   const [liveAudioCtx, setLiveAudioCtx] = useState(null);
   const [hvscOpen, setHvscOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [createOptions, setCreateOptions] = useState(loadCreateOptions);
   const logRef = useRef(null);
   const fileInputRef = useRef(null);
 
   async function onLivePreview() {
-    if (!result?.ssd) return;
     const ctx = new AudioContext();
     await ctx.resume();
     setLiveAudioCtx(ctx);
@@ -232,6 +253,16 @@ export default function App() {
   async function onCreate() {
     if (!files.length) return;
     setBusy(true);
+    const tunePreviews = createOptions.tunePreviews;
+    setProgress({
+      phase: "load",
+      current: 0,
+      total: progressTotal(
+        files.length,
+        previewStepCount(files.length, { tunePreviews }),
+      ),
+      label: "assets",
+    });
     setError("");
     setResult(null);
     setMenuUrl((u) => {
@@ -269,41 +300,60 @@ export default function App() {
 
       appendLog(`Creating SSD from ${inputs.length} SID(s) (in-browser)…`);
 
-      const out = await createSsd(inputs, {
+      const packed = await createDiscInWorker({
+        inputs,
         assets,
         title: "BEEBSID",
-        preview: {
-          stage: previewSsdStage({
-            audio: true,
-            secondsPerTune: UI_SECONDS_PER_TUNE,
-            romBaseUrl: publicUrl("jsbeeb/"),
-          }),
-        },
+        tunePreviews,
         onLog: appendLog,
+        onProgress: setProgress,
       });
+
+      const previewed = await previewSsdStage({
+        audio: tunePreviews,
+        tunePreviews,
+        secondsPerTune: UI_SECONDS_PER_TUNE,
+        romBaseUrl: publicUrl("jsbeeb/"),
+      }).run(
+        createContext({
+          ssd: Buffer.from(packed.ssd),
+          tunes: packed.tunes,
+          inputs,
+          progressTotal: progressTotal(
+            inputs.length,
+            previewStepCount(inputs.length, { tunePreviews }),
+          ),
+          previewSteps: previewStepCount(packed.tunes.length, {
+            tunePreviews,
+          }),
+          previewAudio: tunePreviews,
+          onLog: appendLog,
+          onProgress: setProgress,
+        }),
+      );
 
       setResult({
-        ssd: out.ssd,
-        preview: out.preview,
+        ssd: packed.ssd,
+        preview: previewed.preview,
       });
 
-      if (out.preview?.menuPng) {
+      if (previewed.preview?.menuPng) {
         setMenuUrl(
           URL.createObjectURL(
-            new Blob([out.preview.menuPng], { type: "image/png" }),
+            new Blob([previewed.preview.menuPng], { type: "image/png" }),
           ),
         );
       }
-      if (out.preview?.freePng) {
+      if (previewed.preview?.freePng) {
         setFreeUrl(
           URL.createObjectURL(
-            new Blob([out.preview.freePng], { type: "image/png" }),
+            new Blob([previewed.preview.freePng], { type: "image/png" }),
           ),
         );
       }
-      if (out.preview?.tunes?.length) {
+      if (previewed.preview?.tunes?.length) {
         setAudioUrls(
-          out.preview.tunes.map((t) => ({
+          previewed.preview.tunes.map((t) => ({
             name: t.name,
             url: URL.createObjectURL(
               new Blob([t.wav], { type: "audio/wav" }),
@@ -315,6 +365,7 @@ export default function App() {
       setError(err?.message || String(err));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
 
@@ -335,14 +386,14 @@ export default function App() {
     {
       id: "f3",
       label: "Test Disc",
-      disabled: !result?.ssd || busy || liveOpen,
+      disabled: busy || liveOpen,
       run: onLivePreview,
     },
     {
       id: "f4",
-      label: "Refresh List",
+      label: "Options",
       disabled: busy,
-      run: () => fileInputRef.current?.click(),
+      run: () => setOptionsOpen(true),
     },
     { id: "f5", label: "Clear List", disabled: busy || !files.length, run: clearList },
     {
@@ -394,6 +445,8 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  const shownProgress = formatCreateProgress(progress);
+
   return (
     <div className="app">
       <header className="machine-header" aria-label="BBC Micro inspired header">
@@ -401,8 +454,8 @@ export default function App() {
           <div className="title-copy">
             <h1 className="title-slot">BeebSID Disc Creator</h1>
             <p className="subtitle-slot">
-              Drop SID music files to build a disc you can download and preview
-              here.
+              Load SID music files to build a disc you can test here or
+              download to run on a real BBC Micro.
             </p>
           </div>
           <pre className="version-slot" aria-label="BeebSID Tools version">
@@ -455,6 +508,14 @@ export default function App() {
             }}
           >
             <p className="drop-line">
+              <button
+                type="button"
+                className="file-btn"
+                disabled={busy}
+                onClick={() => setHvscOpen(true)}
+              >
+                HVSC
+              </button>
               <label className={`file-btn ${busy ? "file-btn--disabled" : ""}`}>
                 Choose files
                 <input
@@ -470,15 +531,6 @@ export default function App() {
                 />
               </label>
               or drop <code>.sid</code> files here
-              {" · "}
-              <button
-                type="button"
-                className="file-btn"
-                disabled={busy}
-                onClick={() => setHvscOpen(true)}
-              >
-                HVSC
-              </button>
             </p>
             <div className="file-listing mode7" role="listbox" aria-label="SID files">
               <div className="file-listing__prompt">&gt; *DOWNLOADS</div>
@@ -507,6 +559,28 @@ export default function App() {
 
           <div className="panel-inner log-panel">
             {error ? <p className="meta err">Error: {error}</p> : null}
+            {busy ? (
+              <div className="create-progress">
+                <div
+                  className="create-progress__track"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={shownProgress.percent}
+                  aria-label={shownProgress.text || "Creating disc"}
+                >
+                  <div
+                    className="create-progress__bar"
+                    style={{ width: `${shownProgress.percent}%` }}
+                  />
+                </div>
+                {shownProgress.text ? (
+                  <div className="create-progress__label">
+                    {shownProgress.text}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             <pre className="log mode7" ref={logRef}>
               {log}
             </pre>
@@ -514,7 +588,11 @@ export default function App() {
         </section>
 
         <section className="chrome-panel right-panel">
-          <div className="panel-inner preview-grid">
+          <div
+            className={`panel-inner preview-grid${
+              createOptions.tunePreviews ? "" : " preview-grid--shots-only"
+            }`}
+          >
             <div className="preview-left">
               <figure className="beeb-shot">
                 {menuUrl ? (
@@ -532,33 +610,35 @@ export default function App() {
               </figure>
             </div>
 
-            <div className="preview-tunes">
-              <div className="tunes-log mode7" aria-label="Tune previews">
-                <div className="tunes-log__prompt">&gt; *PREVIEW</div>
-                {audioUrls.length ? (
-                  audioUrls.map((a, i) => (
-                    <div key={a.url} className="tunes-log__entry">
-                      <div className="tunes-log__line">
-                        <span className="tunes-log__idx">
-                          {String(i).padStart(2, "0")}
-                        </span>
-                        <span className="tunes-log__name">{a.name}</span>
+            {createOptions.tunePreviews ? (
+              <div className="preview-tunes">
+                <div className="tunes-log mode7" aria-label="Tune previews">
+                  <div className="tunes-log__prompt">&gt; *PREVIEW</div>
+                  {audioUrls.length ? (
+                    audioUrls.map((a, i) => (
+                      <div key={a.url} className="tunes-log__entry">
+                        <div className="tunes-log__line">
+                          <span className="tunes-log__idx">
+                            {String(i).padStart(2, "0")}
+                          </span>
+                          <span className="tunes-log__name">{a.name}</span>
+                        </div>
+                        <audio
+                          className="tunes-log__player"
+                          controls
+                          src={a.url}
+                          preload="metadata"
+                        />
                       </div>
-                      <audio
-                        className="tunes-log__player"
-                        controls
-                        src={a.url}
-                        preload="metadata"
-                      />
+                    ))
+                  ) : (
+                    <div className="tunes-log__empty">
+                      Create disc for tune previews
                     </div>
-                  ))
-                ) : (
-                  <div className="tunes-log__empty">
-                    Create disc for tune previews
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
         </section>
       </div>
@@ -567,6 +647,7 @@ export default function App() {
         open={liveOpen}
         ssd={result?.ssd ?? null}
         audioCtx={liveAudioCtx}
+        discNoises={createOptions.discNoises}
         onClose={onCloseLive}
       />
       <HvscBrowser
@@ -576,6 +657,12 @@ export default function App() {
         onAddFiles={onFiles}
         onRemoveFile={onRemoveHvsc}
         onLog={(line) => setLog((prev) => (prev ? `${prev}\n${line}` : line))}
+      />
+      <OptionsModal
+        open={optionsOpen}
+        options={createOptions}
+        onChange={(next) => setCreateOptions(saveCreateOptions(next))}
+        onClose={() => setOptionsOpen(false)}
       />
     </div>
   );

@@ -25,21 +25,28 @@ const HEX = join(
 const TUNES_SSD = join(GOLDEN, GOLDEN_SSD_NAME);
 
 test("dfsTuneName / M.MENU layout", () => {
+  // Given two catalogue titles
   assert.equal(dfsTuneName(0, "Head_Over_Heels"), "S.00HEAD_");
+  // When buildMenu writes the file
   const menu = buildMenu([
     { dfsName: "S.00HEAD_", title: "Head Over Heels" },
     { dfsName: "S.01CYBER", title: "Cybernoid" },
   ]);
+  // Then count, DFS name, default times, and BSMN format 1 are in place
   assert.equal(menu[0], 2);
-  assert.equal(menu.length, 1 + 42 * 2 + 4);
+  assert.equal(menu.length, 1 + 42 * 2 + 4 + 5);
   assert.equal(menu.subarray(1, 10).toString("ascii"), "S.00HEAD_");
   assert.equal(menu[10], 0x0d);
   assert.equal(menu.readUInt16LE(1 + 84), 180);
+  assert.equal(menu.subarray(89, 93).toString("ascii"), "BSMN");
+  assert.equal(menu[93], 1);
 });
 
 test("packBeebSidSsd catalogue shape", () => {
+  // Given a .bbcsid and SIDPLAY
   assert.ok(existsSync(SIDPLAY), `missing ${SIDPLAY} — npm run build:player`);
   const bbc = readFileSync(join(GOLDEN, "Head_Over_Heels.bbcsid"));
+  // When packBeebSidSsd builds an SSD
   const { ssd, catalogue } = packBeebSidSsd({
     tunes: [{ bbcSid: bbc, baseName: "Head_Over_Heels", title: "Head Over Heels" }],
     assets: {
@@ -49,6 +56,7 @@ test("packBeebSidSsd catalogue shape", () => {
     title: "HOH SID",
     includeSidpelk: false,
   });
+  // Then the catalogue has player, menu, boot, and a tune at $19F8
   assert.ok(ssd.length === 800 * 256);
   assert.ok(catalogue.some((e) => e.name.includes("SIDPLAY")));
   assert.ok(catalogue.some((e) => e.name.includes("MENU")));
@@ -59,16 +67,19 @@ test("packBeebSidSsd catalogue shape", () => {
 });
 
 test("packGoldenSsd matches committed tunes.ssd", () => {
+  // Given the golden .bbcsid set and a built player
   assert.ok(existsSync(SIDPLAY), `missing ${SIDPLAY} — npm run build:player`);
   assert.ok(
     existsSync(TUNES_SSD),
     `missing ${TUNES_SSD} — npm run update:golden-ssd`,
   );
+  // When packGoldenSsd packs the same recipe as the committed SSD
   const { ssd, catalogue } = packGoldenSsd(GOLDEN, {
     sidplay: readFileSync(SIDPLAY),
     hex: readFileSync(HEX),
   });
   const golden = readFileSync(TUNES_SSD);
+  // Then the image matches tunes.ssd
   assert.equal(
     catalogue.filter((e) => e.name.startsWith("S.")).length,
     GOLDEN_SSD_TUNES.length,
@@ -84,12 +95,14 @@ test(
   "createSsd multi-tune pipeline (all golden SIDs)",
   { timeout: 180_000 },
   async () => {
+    // Given the golden .sid files
     assert.ok(existsSync(SIDPLAY));
     const inputs = GOLDEN_SSD_TUNES.map((t) => {
       const path = join(GOLDEN, `${t.baseName}.sid`);
       assert.ok(existsSync(path), `missing ${path}`);
       return { sid: readFileSync(path), baseName: t.baseName };
     });
+    // When createSsd converts and packs them
     const { ssd, tunes, meta } = await createSsd(inputs, {
       assets: {
         sidplay: readFileSync(SIDPLAY),
@@ -98,6 +111,7 @@ test(
       title: "GOLDEN",
       includeSidpelk: false,
     });
+    // Then every tune is on an 80-track SSD
     assert.equal(tunes.length, GOLDEN_SSD_TUNES.length);
     for (const t of tunes) assert.ok(t.bbcSid.length > 100);
     assert.equal(

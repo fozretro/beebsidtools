@@ -4,6 +4,7 @@
  *
  *   create convert <in.sid...> [options] [-o outdir|out.ssd]
  *   create ssd <in.sid...> [options] [-o out.ssd]
+ *   create upgrade <in.ssd> [-o out.ssd]
  *   create patches
  *
  * SSD preview runs inside createSsd({ preview }) (headless jsbeeb stage).
@@ -21,12 +22,15 @@ import { fileURLToPath } from "node:url";
 import {
   createSsd,
   convertSids,
+  applyPreviewFlag,
+  previewOptsFromFlags,
   parsePsid,
   parseSonglengthsMd5,
   lookupPlaySeconds,
   hvscRelFromSonglengths,
   formatPlaySeconds,
   DEFAULT_PLAY_SECONDS,
+  upgradeBeebSidSsd,
 } from "./index.js";
 import { locateSonglengthsFile } from "./lib/songlengthsLocate.js";
 import { builtinPatches, patchPhase } from "./lib/patchRegistry.js";
@@ -50,10 +54,12 @@ function usage(code = 1) {
            [--sidpelk] [--hex=path] [--patch=id] [--no-patch]
            [--page=HH] [--sid-dest=HHHH] [--force|--no-force]
            [--keep-zp|--no-keep-zp] [--zp=LO-HI]
-           [--no-preview] [--record-audio]
+           [--no-preview] [--tune-previews|--record-audio]
+           [--no-tune-previews]
            [--songlengths=Songlengths.md5] [--no-songlengths]
            [-o outdir|out.ssd]
   create ssd <in.sid...> [same options] [-o out.ssd]
+  create upgrade <in.ssd> [--sidplay=path] [--hex=path] [-o out.ssd]
   create patches
   create --version
 
@@ -65,9 +71,14 @@ function usage(code = 1) {
   will not play in the bundled player.
   SSD create skips a tune that fails convert (reloc, size, unpatched RSID)
   and packs the rest. Headless preview via createSsd({ preview }) → menu.png
-  (skip with --no-preview). --record-audio adds ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune.
+  (skip with --no-preview). --tune-previews (--record-audio) adds
+  ~${UI_SECONDS_PER_TUNE}s FastSID clips per tune; --no-tune-previews skips
+  the WAVs and keeps the menu shot.
   Auto-play times: walks up from each .sid for HVSC DOCUMENTS/Songlengths.md5
   (or pass --songlengths=). Default ${DEFAULT_PLAY_SECONDS}s if unmatched.
+  upgrade writes the current SIDPLAY (and SIDPELK / F.HEX when present) onto
+  an existing disc and stamps M.MENU format 1 (play times if missing).
+  Without -o it overwrites the input .ssd.
 `);
   process.exit(code);
 }
@@ -154,10 +165,8 @@ function parseArgs(argv) {
       flags.add("ssd");
     } else if (a === "--sidpelk") {
       flags.add("sidpelk");
-    } else if (a === "--no-preview") {
-      flags.add("no-preview");
-    } else if (a === "--record-audio") {
-      flags.add("record-audio");
+    } else if (applyPreviewFlag(flags, a)) {
+      /* --no-preview / --tune-previews / --record-audio / --no-tune-previews */
     } else if (a === "--no-songlengths") {
       flags.add("no-songlengths");
     } else if (a.startsWith("--title=")) {
@@ -320,14 +329,6 @@ function attachPlaySeconds(inputs, { flags, songlengthsPath, onLog }) {
   return next;
 }
 
-/** @returns {false|{ audio: boolean, secondsPerTune: number }} */
-function previewOptsFromFlags(flags) {
-  const wantAudio = flags.has("record-audio");
-  const wantMenu = !flags.has("no-preview");
-  if (!wantMenu && !wantAudio) return false;
-  return { audio: wantAudio, secondsPerTune: UI_SECONDS_PER_TUNE };
-}
-
 async function cmdConvert(opts) {
   const {
     flags,
@@ -381,13 +382,16 @@ async function cmdConvert(opts) {
 
   const includeSidpelk = flags.has("sidpelk");
   const { assets } = loadAssets({ sidplayPath, hexPath, includeSidpelk });
-  const previewFlags = previewOptsFromFlags(flags);
+  const previewFlags = previewOptsFromFlags(flags, UI_SECONDS_PER_TUNE);
   let preview = false;
   if (previewFlags) {
     const { previewSsdStage } = await import("./preview/node/stage.js");
     preview = {
+      audio: previewFlags.audio,
+      tunePreviews: previewFlags.tunePreviews,
       stage: previewSsdStage({
         audio: previewFlags.audio,
+        tunePreviews: previewFlags.tunePreviews,
         secondsPerTune: previewFlags.secondsPerTune,
       }),
     };
@@ -425,6 +429,36 @@ async function cmdSsd(opts) {
   return cmdConvert(opts);
 }
 
+function cmdUpgrade(opts) {
+  const { positional, out, sidplayPath, hexPath } = opts;
+  if (positional.length !== 1) usage();
+  const inPath = resolve(positional[0]);
+  if (!existsSync(inPath)) throw new Error(`Missing SSD: ${inPath}`);
+  if (extname(inPath).toLowerCase() !== ".ssd") {
+    throw new Error(`upgrade expects an .ssd, got ${basename(inPath)}`);
+  }
+
+  const { assets } = loadAssets({
+    sidplayPath,
+    hexPath,
+    includeSidpelk: existsSync(join(DEFAULT_PLAYER_OUT, "sidpelk.o")),
+  });
+  const { ssd, report } = upgradeBeebSidSsd(readFileSync(inPath), assets);
+  const dest = resolve(out || inPath);
+  mkdirSync(dirname(dest), { recursive: true });
+  writeFileSync(dest, ssd);
+
+  const bits = [];
+  if (report.player) bits.push("player");
+  if (report.sidpelk) bits.push("Electron player");
+  if (report.hex) bits.push("hex digits");
+  if (report.menuTimes) bits.push("play times");
+  if (report.menuFormat) bits.push("menu version");
+  if (bits.length) console.error(`  upgraded: ${bits.join(", ")}`);
+  else console.error("  already current");
+  console.log(`Wrote ${dest}`);
+}
+
 async function cmdPatches() {
   const patches = builtinPatches;
   if (patches.length === 0) {
@@ -442,6 +476,7 @@ const parsed = parseArgs(process.argv);
 try {
   if (parsed.cmd === "convert") await cmdConvert(parsed);
   else if (parsed.cmd === "ssd") await cmdSsd(parsed);
+  else if (parsed.cmd === "upgrade") cmdUpgrade(parsed);
   else if (parsed.cmd === "patches") await cmdPatches();
   else {
     console.error(`Unknown command: ${parsed.cmd}`);

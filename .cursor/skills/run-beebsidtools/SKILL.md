@@ -37,11 +37,15 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 ./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --no-preview
 ./create ssd ~/HVSC/C64Music/MUSICIANS/H/Hubbard_Rob/Commando.sid \
   -o /tmp/commando.ssd --no-preview   # auto-finds DOCUMENTS/Songlengths.md5
-./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --record-audio
+./create ssd sids/Cybernoid.sid -o /tmp/cyber.ssd --tune-previews
+./create upgrade /tmp/cyber.ssd -o /tmp/cyber-new.ssd
 ./create patches
 ```
 
-- SSD create runs headless preview by default (`menu.png`; optional WAVs with `--record-audio`).
+Menu layout (`M.MENU`, `BSMN`, times) and `create upgrade` stay in lockstep —
+see `upgrade-beebsid-disc`. Convert leftovers go in `out/`, not `discs/`.
+
+- SSD create runs headless preview by default (`menu.png`; optional WAVs with `--tune-previews` / `--record-audio`).
 - Preview host for CLI: `preview/node` (injected inside CLI via `createSsd`).
 - Equivalent: `npm run create -- convert …`
 
@@ -53,15 +57,18 @@ Inputs are **explicit `.sid` paths** (no default input dir). Sample library: `si
 npm run dev:app          # same as ./app, default Vite port 5173
 ```
 
-App must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
+App convert/pack runs in a worker (`createSsd` without preview). Preview
+must import `beebsidtools-src-create/preview/browser` (never `preview/node`).
 
-Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f9 Credits, f0 Help (version + release notes).
+Function keys (BBC chrome): f1 Create, f2 Download, f3 Test Disc, f4 Options, f9 Credits, f0 Help (version + release notes).
 
 ## Tests
 
+Given / When / Then, goldens, and jsbeeb SIDPLAY: `test-beebsidtools`.
+
 ```bash
-npm test                 # create + player
-npm run test:fast        # skip slow reloc / optional player modules
+npm test                 # create + player + app
+npm run test:fast        # skip slow reloc / jsbeeb / optional modules
 npm run test:create
 npm run test:player
 ```
@@ -84,7 +91,7 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 1. Missing `sidpl.o` → `./create` / `./app` copy goldens into `src.player/out/`.
 2. Vite/`MachineSession` fs errors → wrong preview host import.
 3. `*FREE` fails → model must be `B1770`, not `B-DFS1.2`.
-4. App ROMs missing → `npm run sync --prefix src.app`.
+4. App ROMs / gallery discs / floppy samples missing → `npm run sync --prefix src.app`.
 5. Patch unexpected → check `./create patches` / `--no-patch` / SID hash.
 6. First-run build failed → `logs/install-src.create.log` (`./create`) or `logs/build-app.log` (`./app`).
 
@@ -94,4 +101,5 @@ Fixtures live under `src.create/test/golden/` and `src.player/test/golden/` (not
 - Contributing (tests, goldens, API): [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
 - Package boundaries: `../rules/package-boundaries.mdc`
 - Preview hosts: `../rules/preview-hosts.mdc`
+- Tests / goldens / Given-When-Then: `../test-beebsidtools/SKILL.md`
 - Lineage: [`ARCHITECTURE.md`](../../ARCHITECTURE.md)

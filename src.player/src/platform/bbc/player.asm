@@ -55,6 +55,41 @@ KEY_COMMA       = 256 - 103         ; , / <  (song prev)
 KEY_PERIOD      = 256 - 104         ; . / >  (song next)
 DEFAULT_PLAY_SECS = 180             ; when M.MENU has no time table
 
+; Mode 7 RAM. Cell = MODE7 + row * MODE7_COLS + col.
+MODE7           = $7C00
+MODE7_COLS      = 40
+
+SCR_HINT        = MODE7 + 1 * MODE7_COLS + 20   ; "A AUTO" (double-height)
+SCR_HINT_DH     = MODE7 + 2 * MODE7_COLS + 20
+SCR_VER         = MODE7 + 1 * MODE7_COLS + 31
+SCR_VER_DH      = MODE7 + 2 * MODE7_COLS + 31
+SCR_MENU        = MODE7 + 4 * MODE7_COLS + 4
+SCR_FREQ0       = MODE7 + 1 * MODE7_COLS + 5
+SCR_FREQ1       = MODE7 + 4 * MODE7_COLS + 5
+SCR_FREQ2       = MODE7 + 7 * MODE7_COLS + 5
+SCR_VOL0        = MODE7 + 11 * MODE7_COLS + 7
+SCR_VOL1        = MODE7 + 11 * MODE7_COLS + 19
+SCR_VOL2        = MODE7 + 11 * MODE7_COLS + 31
+SCR_MSG0        = MODE7 + 17 * MODE7_COLS
+SCR_MSG1        = MODE7 + 18 * MODE7_COLS
+SCR_MSG2        = MODE7 + 19 * MODE7_COLS
+SCR_PLAY        = MODE7 + 24 * MODE7_COLS       ; AUTO MM:SS + song marker
+SCR_AUTO        = SCR_PLAY + 19
+SCR_AUTO_TEXT   = SCR_PLAY + 20
+SCR_AUTO_GAP    = SCR_PLAY + 24
+PLAY_TIMER_SCR  = SCR_PLAY + 25
+SCR_SONG_COL    = SCR_PLAY + 30
+SCR_SONG_LT     = SCR_PLAY + 31
+SCR_SONG_DIG    = SCR_PLAY + 32
+SCR_SONG_GT     = SCR_PLAY + 33
+
+MACRO m7ptr dest, addr
+                lda     #LO(addr)
+                sta     dest
+                lda     #HI(addr)
+                sta     dest + 1
+ENDMACRO
+
 ; OSBYTE A= / service X=
 OSBYTE_OS_VERSION       = 0         ; X=1 → host type in X
 OSBYTE_CURSOR_EDIT      = 4         ; X=0/1 cursor editing
@@ -542,6 +577,14 @@ KEY_DOWN_MASK   = $80
                 jmp     menu_loop
 
 .men_dn
+        clc
+                lda     menu_sel
+                adc     menu_off
+                adc     #1
+                cmp     menu            ; next index >= catalogue count
+                bcc     men_dn_ok
+                jmp     menu_loop
+.men_dn_ok
         inc     menu_sel
                 lda     #9              ;entries on screen
                 cmp     menu_sel
@@ -740,6 +783,7 @@ KEY_DOWN_MASK   = $80
                 dec     play_secs_hi
 .dlo
                 dec     play_secs_lo
+                jsr     show_play_timer
                 lda     play_secs_lo
                 ora     play_secs_hi
                 rts
@@ -748,14 +792,76 @@ KEY_DOWN_MASK   = $80
                 rts
 
 }
-.show_men
-                ; set zPTR to first menu screen position
-                men_scr_start = $7C00 + 4 + 4 * 40
+
+; MM:SS at row 24, column 25. Minutes clamp at 99.
+.show_play_timer
 {
-                lda     #LO(men_scr_start)
-                sta     zPTR
-                lda     #HI(men_scr_start)
-                sta     zPTR + 1
+                lda     autoplay
+                beq     done
+                lda     play_secs_lo
+                sta     zTMP0
+                lda     play_secs_hi
+                sta     zTMP1
+                lda     #0
+                sta     zTMP2
+.div
+                lda     zTMP1
+                bne     sub
+                lda     zTMP0
+                cmp     #60
+                bcc     write
+.sub
+                sec
+                lda     zTMP0
+                sbc     #60
+                sta     zTMP0
+                lda     zTMP1
+                sbc     #0
+                sta     zTMP1
+                inc     zTMP2
+                lda     zTMP2
+                cmp     #100
+                bcc     div
+                lda     #99
+                sta     zTMP2
+                lda     #59
+                sta     zTMP0
+.write
+                m7ptr   zPTR, PLAY_TIMER_SCR
+                ldy     #0
+                lda     zTMP2
+                jsr     put_dd
+                lda     #':'
+                sta     (zPTR), y
+                iny
+                lda     zTMP0
+                jsr     put_dd
+.done
+                rts
+
+.put_dd
+                ldx     #'0' - 1
+.tens
+                inx
+                sec
+                sbc     #10
+                bcs     tens
+                adc     #10
+                clc
+                adc     #'0'
+                pha
+                txa
+                sta     (zPTR), y
+                iny
+                pla
+                sta     (zPTR), y
+                iny
+                rts
+
+}
+.show_men
+{
+                m7ptr   zPTR, SCR_MENU
                 lda     #0
                 sta     zTMP0
 .lp1
@@ -810,7 +916,7 @@ KEY_DOWN_MASK   = $80
 .sk2
         ; move to next screen line
                 clc
-                lda     #40
+                lda     #MODE7_COLS
                 adc     zPTR
                 sta     zPTR
                 lda     #0
@@ -875,55 +981,28 @@ KEY_DOWN_MASK   = $80
 }
 .show_freq_vol
 {
-                lda     #LO($7C00 + 5 + 1 * 40)      ; zPTR = line 1
-                sta     zPTR
-                lda     #HI($7C00 + 5 + 1 * 40)
-                sta     zPTR + 1
-
-                ldx     #0                     ; channel 0
+                m7ptr   zPTR, SCR_FREQ0
+                ldx     #0
                 jsr     showfrq
 
-                lda     #LO($7C00 + 5 + 4 * 40)      ; zPTR = line 4
-                sta     zPTR
-                lda     #HI($7C00 + 5 + 4 * 40)
-                sta     zPTR + 1
-
-                ldx     #7                     ; channel 1
+                m7ptr   zPTR, SCR_FREQ1
+                ldx     #7
                 jsr     showfrq
 
-                lda     #LO($7C00 + 5 + 7 * 40)      ; zPTR = line 7
-                sta     zPTR
-                lda     #HI($7C00 + 5 + 7 * 40)
-                sta     zPTR + 1
-
-                ldx     #14                      ; channel 2
+                m7ptr   zPTR, SCR_FREQ2
+                ldx     #14
                 jsr     showfrq
 
-
-
-
-                lda     #LO($7C00 + 7 + 11 * 40)      ; zPTR = 7x11
-                sta     zPTR
-                lda     #HI($7C00 + 7 + 11 * 40)
-                sta     zPTR + 1
-
-                ldx     #0                      ; channel 0
+                m7ptr   zPTR, SCR_VOL0
+                ldx     #0
                 jsr     showvol
 
-                lda     #LO($7C00 + 19 + 11 * 40)      ; zPTR = 19x11
-                sta     zPTR
-                lda     #HI($7C00 + 19 + 11 * 40)
-                sta     zPTR + 1
-
-                ldx     #1                      ; channel 0
+                m7ptr   zPTR, SCR_VOL1
+                ldx     #1
                 jsr     showvol
 
-                lda     #LO($7C00 + 31 + 11 * 40)      ; zPTR = 19x11
-                sta     zPTR
-                lda     #HI($7C00 + 31 + 11 * 40)
-                sta     zPTR + 1
-
-                ldx     #2                      ; channel 0
+                m7ptr   zPTR, SCR_VOL2
+                ldx     #2
                 jmp     showvol
 
 ; A = song number.
@@ -1012,8 +1091,12 @@ KEY_DOWN_MASK   = $80
 {
 		ldx	zCURTUNE
 		cpx	#2
-		bcc	tune_loop
+		bcs     prev_ok
+                jmp     tune_loop
+.prev_ok
 		dex
+                lda     #0
+                sta     autoplay
 		txa
 		jmp	restart_tune
 
@@ -1022,8 +1105,12 @@ KEY_DOWN_MASK   = $80
 {
 		ldx	zCURTUNE
 		cpx	$19FC
-		bcs	tune_loop
+		bcc     next_ok
+                jmp     tune_loop
+.next_ok
 		inx
+                lda     #0
+                sta     autoplay
 		txa
 		jmp	restart_tune
 
@@ -1684,24 +1771,18 @@ KEY_DOWN_MASK   = $80
 .scroll
 {
         ; before doing scroll check to see if left most chars are colour codes and if they are move into col2
-                lda     $7C00 + 17 * 40 + 3
+                lda     SCR_MSG0 + 3
                 cmp     #128
                 bcc     ssk1
                 cmp     #160
                 bcs     ssk1
-                sta     $7C00 + 17 * 40 + 2
-                sta     $7C00 + 18 * 40 + 2
-                sta     $7C00 + 19 * 40 + 2
+                sta     SCR_MSG0 + 2
+                sta     SCR_MSG1 + 2
+                sta     SCR_MSG2 + 2
 
 .ssk1
-        lda     #LO($7C00 + 17 * 40 + 3)
-                sta     zPTR
-                lda     #HI($7C00 + 17 * 40 + 3)
-                sta     zPTR + 1
-                lda     #LO($7C00 + 17 * 40 + 4)
-                sta     zPTR2
-                lda     #HI($7C00 + 17 * 40 + 4)
-                sta     zPTR2 + 1
+                m7ptr   zPTR, SCR_MSG0 + 3
+                m7ptr   zPTR2, SCR_MSG0 + 4
                 ldx     #3
                 stx     zTMP0
                 ldy     #0
@@ -1809,12 +1890,12 @@ KEY_DOWN_MASK   = $80
                 ldy     #0              ; line
 .lp1
         jsr     getchbits
-                sta     $7C00 + 17 * 40 + 39
+                sta     SCR_MSG0 + 39
                 jsr     getchbits
-                sta     $7C00 + 18 * 40 + 39
+                sta     SCR_MSG1 + 39
                 jsr     getchbits
                 and     #$AF
-                sta     $7C00 + 19 * 40 + 39
+                sta     SCR_MSG2 + 39
 
                 inc     message_col
                 lda     #7
@@ -1833,9 +1914,9 @@ KEY_DOWN_MASK   = $80
 
 .code
         ; control code - just output the char
-                sta     $7C00 + 17 * 40 + 39
-                sta     $7C00 + 18 * 40 + 39
-                sta     $7C00 + 19 * 40 + 39
+                sta     SCR_MSG0 + 39
+                sta     SCR_MSG1 + 39
+                sta     SCR_MSG2 + 39
                 inc     message_col
                 lda     #4
                 cmp     message_col
@@ -1897,23 +1978,34 @@ KEY_DOWN_MASK   = $80
                 rts
 
 
-; Double-height "A AUTO" in the SIDPLAY header gap.
+; Double-height "A AUTO" and product version over the old "bcdef" art.
 }
+
+INCLUDE "../../../out/version.asm"
+
 .show_menu_hint
 {
                 ldx     #0
 .lp
                 lda     auto_hint, x
-                sta     $7C00 + 1 * 40 + 20, x
-                sta     $7C00 + 2 * 40 + 20, x
+                sta     SCR_HINT, x
+                sta     SCR_HINT_DH, x
                 inx
                 cpx     #6
                 bne     lp
+                ldx     #0
+.lpv
+                lda     version_str, x
+                sta     SCR_VER, x
+                sta     SCR_VER_DH, x
+                inx
+                cpx     #VERSION_LEN
+                bne     lpv
                 rts
 .auto_hint
                 EQUS    "A AUTO"
 
-; Mode 7 RAM only (no OSWRCH). Tune marker at row 23, column 30.
+; Mode 7 RAM only (no OSWRCH). AUTO + MM:SS then tune marker on row 24.
 }
 .screen_play
 {
@@ -1925,45 +2017,49 @@ KEY_DOWN_MASK   = $80
 
                 jsr     message_reset
 
-                lda     #131                            ; yellow, left of song marker
-                sta     $7C00 + 23 * 40 + 24
                 ldx     #0
                 lda     autoplay
                 bne     auto_on
                 lda     #32
 .auto_sp
-                sta     $7C00 + 23 * 40 + 25, x
+                sta     SCR_AUTO, x
                 inx
-                cpx     #4
+                cpx     #11
                 bne     auto_sp
                 jmp     song_mark
 .auto_on
+                lda     #131                            ; yellow
+                sta     SCR_AUTO
+.aw
                 lda     auto_word, x
-                sta     $7C00 + 23 * 40 + 25, x
+                sta     SCR_AUTO_TEXT, x
                 inx
                 cpx     #4
-                bne     auto_on
+                bne     aw
+                lda     #32
+                sta     SCR_AUTO_GAP
+                jsr     show_play_timer
 .song_mark
                 lda     #132                            ; Mode 7 blue
-                sta     $7C00 + 23 * 40 + 30
+                sta     SCR_SONG_COL
                 ldx     zCURTUNE
                 lda     #'<'
                 cpx     #2
                 bcs     sge
                 lda     #' '
 .sge
-        sta     $7C00 + 23 * 40 + 31
+        sta     SCR_SONG_LT
                 txa
                 clc
                 adc     #'0'
-                sta     $7C00 + 23 * 40 + 32
+                sta     SCR_SONG_DIG
                 lda     #'>'
                 ldx     zCURTUNE
                 cpx     $19FC
                 bcc     slt2
                 lda     #' '
 .slt2
-        sta     $7C00 + 23 * 40 + 33
+        sta     SCR_SONG_GT
                 jmp     shut_up
 .auto_word
                 EQUS    "AUTO"
@@ -1996,7 +2092,7 @@ KEY_DOWN_MASK   = $80
 }
 .menu
 {
-        SKIP 1261      ; menu space 1 byte contains number of tunes followed by 10 chars of filename
+        SKIP 1261      ; count, 42-byte entries, uint16 times, BSMN+format trailer
 
 
 

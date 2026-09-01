@@ -1,5 +1,5 @@
 /**
- * Convert many SID inputs through pre-patch → relocate → post-patch → rip.
+ * Convert many SID inputs: replace replica, or pre-patch → relocate → post-patch → rip.
  * Expects ctx.inputs[]; produces ctx.tunes[].
  */
 
@@ -7,7 +7,7 @@ import { runPipeline, createContext } from "../pipeline.js";
 import { relocateStage } from "./relocate.js";
 import { prePatchStage, postPatchStage } from "./patch.js";
 import { ripStage } from "./rip.js";
-import { sha256Hex } from "../lib/patchRegistry.js";
+import { getPatches, resolvePatch, sha256Hex } from "../lib/patchRegistry.js";
 import { parsePsid } from "../lib/psid.js";
 import { rsidNeedsManualPatch } from "../lib/rsid.js";
 import { titleFromStem } from "../lib/menu.js";
@@ -16,6 +16,29 @@ import {
   describeTuneRam,
   formatTuneRam,
 } from "../lib/tuneRam.js";
+import { convertProgressUpdate, reportProgress } from "../progress.js";
+
+function applyReplacePatch({ inputSid, patchFlag, inputSha256 }) {
+  if (patchFlag === false) return null;
+  const selected = resolvePatch({
+    patches: getPatches(),
+    patchFlag,
+    inputSha256,
+    phase: "replace",
+    optional: patchFlag === true,
+  });
+  if (!selected) return null;
+  const result = selected.patch(inputSid);
+  if (!result?.bbcSid) {
+    throw new Error(`${selected.id}: replace patch must return bbcSid`);
+  }
+  return {
+    id: selected.id,
+    title: selected.title,
+    bbcSid: Buffer.from(result.bbcSid),
+    summary: result.summary ?? "listing replica",
+  };
+}
 
 function logSkipped(ctx, message) {
   const lines = String(message).split("\n");
@@ -53,11 +76,60 @@ export function convertTunesStage(opts = {}) {
         const inputSid = Buffer.from(input.sid ?? input.inputSid);
         const patch = input.patch === undefined ? defaultPatch : input.patch;
 
+        reportProgress(ctx, convertProgressUpdate(ctx, i, baseName));
         ctx.log.push(`  [${i + 1}/${inputs.length}] ${baseName}`);
 
         try {
           const rsidMsg = rsidNeedsManualPatch(inputSid, { name: baseName, patch });
           if (rsidMsg) throw new Error(rsidMsg);
+
+          const inputSha256 = sha256Hex(inputSid);
+          const replaced = applyReplacePatch({
+            inputSid,
+            patchFlag: patch,
+            inputSha256,
+          });
+          if (replaced) {
+            ctx.log.push(
+              `    replace: ${replaced.id}${replaced.title ? ` (${replaced.title})` : ""}`,
+            );
+            for (const line of replaced.summary.split("\n")) {
+              ctx.log.push(`    ${line}`);
+            }
+            const ram = describeTuneRam(replaced.bbcSid, playerLoad);
+            if (ram.over) {
+              throw new Error(
+                formatTuneRam(baseName, replaced.bbcSid, playerLoad),
+              );
+            }
+            ctx.log.push(
+              `    ${formatTuneRam(baseName, replaced.bbcSid, playerLoad)}`,
+            );
+
+            let title = input.title;
+            if (!title) title = titleFromStem(baseName);
+            if (!title) {
+              try {
+                title = parsePsid(inputSid).title;
+              } catch {
+                title = baseName;
+              }
+            }
+
+            tunes.push({
+              baseName,
+              title,
+              bbcSid: replaced.bbcSid,
+              dfsName: input.dfsName,
+              playSeconds: input.playSeconds,
+              meta: {
+                inputSha256,
+                patchId: replaced.id,
+                patchPhase: "replace",
+              },
+            });
+            continue;
+          }
 
           let one = await runPipeline(
             [
@@ -69,7 +141,7 @@ export function convertTunesStage(opts = {}) {
             createContext({
               baseName,
               inputSid,
-              meta: { inputSha256: sha256Hex(inputSid) },
+              meta: { inputSha256 },
             }),
           );
 

@@ -8,6 +8,7 @@ src.create/test/out/
 src.app/public/player/*
 !src.app/public/player/.gitkeep
 src.app/public/jsbeeb/
+src.app/public/gallery/
 *.bbc
 *.lst
 

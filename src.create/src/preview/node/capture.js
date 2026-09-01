@@ -81,6 +81,7 @@ async function captureOneTune(ssdPath, tuneIndex, seconds, model, timeoutMs) {
  * @param {number} [opts.timeoutMs]
  * @param {string} [opts.model]
  * @param {(line: string) => void} [opts.onLog]
+ * @param {(info: { step: number, label: string }) => void} [opts.onProgress]
  */
 export async function captureSsdPreview({
   ssd,
@@ -92,6 +93,7 @@ export async function captureSsdPreview({
   // *FREE needs Acorn 1770 DFS (not 8271 DFS 1.2)
   model = "B1770",
   onLog = null,
+  onProgress = null,
 }) {
   if (ssd == null) throw new Error("captureSsdPreview: ssd required");
   const n = Math.max(1, Number(tuneCount) || 1);
@@ -102,6 +104,7 @@ export async function captureSsdPreview({
   };
 
   try {
+    onProgress?.({ step: 0, label: "menu" });
     log("    booting jsbeeb for *CAT/*FREE + menu screenshots…");
     const shot = new MachineSession(model, { discImage: ssdPath });
     let tune0 = "";
@@ -127,6 +130,7 @@ export async function captureSsdPreview({
     if (audio) {
       for (let i = 0; i < n; i++) {
         const name = tuneNames[i] || (i === 0 && tune0 ? tune0 : `tune${i}`);
+        onProgress?.({ step: 1 + i, label: name });
         log(`    recording ${i + 1}/${n}: ${name} (${secs}s)…`);
         const { wav, tune0: t0 } = await captureOneTune(
           ssdPath,
