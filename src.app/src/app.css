@@ -727,6 +727,8 @@ body {
   margin: 0;
   grid-column: 1;
   color: #1f1b15;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .modal-status.err {
@@ -1200,14 +1202,6 @@ body {
   opacity: 0.4;
   cursor: default;
   filter: grayscale(0.25);
-}
-
-.live-disc-name {
-  color: #3d3428;
-  font-size: clamp(12px, 1.1vw, 15px);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .live-body--over {

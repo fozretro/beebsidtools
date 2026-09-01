@@ -217,7 +217,7 @@ export default function LivePreviewModal({
       if (report.menuTimes) bits.push("play times");
       if (report.menuFormat) bits.push("menu version");
       setDiscName((n) => {
-        const base = (n || "Created disc").replace(/ \(upgraded\)$/i, "");
+        const base = (n || "beebsid.ssd").replace(/ \(upgraded\)$/i, "");
         return `${base} (upgraded)`;
       });
       setDisc(new Uint8Array(ssd));
@@ -280,7 +280,8 @@ export default function LivePreviewModal({
 
   if (!open) return null;
 
-  const label = discName || (disc ? "Created disc" : "No disc loaded");
+  const discLabel = discName || (disc ? "beebsid.ssd" : "");
+  const title = discLabel ? `Test Disc - ${discLabel}` : "Test Disc";
 
   return (
     <div
@@ -299,7 +300,7 @@ export default function LivePreviewModal({
         <div className="panel-inner modal-shell">
           <header className="modal-header">
             <h2 id="live-preview-title" className="modal-title">
-              Test Disc
+              {title}
             </h2>
             {statusErr ? (
               <p className="modal-status err">{status}</p>
@@ -361,7 +362,6 @@ export default function LivePreviewModal({
             >
               Gallery
             </button>
-            <span className="live-disc-name">{label}</span>
           </div>
 
           <div
